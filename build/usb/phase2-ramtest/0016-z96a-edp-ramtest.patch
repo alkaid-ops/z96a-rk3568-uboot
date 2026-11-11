@@ -1,0 +1,24 @@
+--- a/include/configs/z96a_rk3568.h
++++ b/include/configs/z96a_rk3568.h
+@@ -22,6 +22,9 @@
+ #undef CONFIG_BOOTCOMMAND
+ #define CONFIG_BOOTCOMMAND \
+ 	"gpio s A6;gpio s E11;gpio s E9;gpio s C31;gpio s A27;" \
+-	"usb start;bootflow scan -lb  "
++	"usb start;" \
++	"setenv boot_targets usb;bootflow scan -lb;" \
++	"z96a_logo;" \
++	"setenv boot_targets mmc1 mmc0;bootflow scan -lb"
+ 
+ #endif
+--- a/configs/z96a-rk3568-laptop-v2_defconfig
++++ b/configs/z96a-rk3568-laptop-v2_defconfig
+@@ -129,7 +129,7 @@
+ CONFIG_PANEL=y
+ CONFIG_SIMPLE_PANEL=y
+ CONFIG_VIDEO_LOGO=y
+-# CONFIG_Z96A_EDP_LOGO is not set
++CONFIG_Z96A_EDP_LOGO=y
+ CONFIG_SPL_ADC=y
+ CONFIG_DM_RNG=y
+ CONFIG_RNG_ROCKCHIP=y

@@ -1,0 +1,8 @@
+usb start
+if load usb 0:1 0x00800000 u-boot-fit-dtb-phase2.bin; then
+  if load usb 0:1 0x10000000 z96a_chainload.bin; then
+    fatrm usb 0:1 boot.scr
+    fatrm usb 0:1 extlinux/extlinux.conf
+    go 0x10000000
+  fi
+fi
