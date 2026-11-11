@@ -1,0 +1,100 @@
+FIT description: FIT image for U-Boot with bl31 (TF-A)
+Created:         Wed Oct 28 04:23:25 2026
+ Image 0 (u-boot)
+  Description:  U-Boot
+  Created:      Wed Oct 28 04:23:25 2026
+  Type:         Standalone Program
+  Compression:  uncompressed
+  Data Size:    948960 Bytes = 926.72 KiB = 0.90 MiB
+  Architecture: AArch64
+  Load Address: 0x00800000
+  Entry Point:  0x00800000
+  Hash algo:    sha256
+  Hash value:   49b398121b37db5268e8d46c1256921a1a7b48d5e7a4e766439360aa4e273ab0
+ Image 1 (atf-1)
+  Description:  ARM Trusted Firmware
+  Created:      Wed Oct 28 04:23:25 2026
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    106496 Bytes = 104.00 KiB = 0.10 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x00040000
+  Hash algo:    sha256
+  Hash value:   77f66bc3aeddd2e668229ea99af4ccbdc23f6d98a506755f3c81e7c3bae85d98
+ Image 2 (atf-2)
+  Description:  ARM Trusted Firmware
+  Created:      Wed Oct 28 04:23:25 2026
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    7796 Bytes = 7.61 KiB = 0.01 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x0005a000
+  Hash algo:    sha256
+  Hash value:   384b87ec34c5c1df4628aa04efce970d14abec2c23adf18bc3640c0537efd48f
+ Image 3 (atf-3)
+  Description:  ARM Trusted Firmware
+  Created:      Wed Oct 28 04:23:25 2026
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    20739 Bytes = 20.25 KiB = 0.02 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x0005c000
+  Hash algo:    sha256
+  Hash value:   fc632865ba770f00cc112d2b73ec60d100f891196a5f53a211d8b979f0c0f634
+ Image 4 (atf-4)
+  Description:  ARM Trusted Firmware
+  Created:      Wed Oct 28 04:23:25 2026
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    40960 Bytes = 40.00 KiB = 0.04 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcc1000
+  Hash algo:    sha256
+  Hash value:   5e891e12e9511ff56b88d153dfdd9222866f059c1325f6269a86e01bbd02a29a
+ Image 5 (atf-5)
+  Description:  ARM Trusted Firmware
+  Created:      Wed Oct 28 04:23:25 2026
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    8192 Bytes = 8.00 KiB = 0.01 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcce000
+  Hash algo:    sha256
+  Hash value:   821ec3fca7ea302c7a94d46d8267fd1438e1a82d6b7302fdfd305b1ca5dde9ba
+ Image 6 (atf-6)
+  Description:  ARM Trusted Firmware
+  Created:      Wed Oct 28 04:23:25 2026
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    8192 Bytes = 8.00 KiB = 0.01 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcd0000
+  Hash algo:    sha256
+  Hash value:   37b2f43b0d6ccf0f7080f468a35d4408fdbc300328420b42afd7b0e8f9c7ef53
+ Image 7 (fdt-1)
+  Description:  fdt-rockchip/rk3568-z96a-laptop-v2
+  Created:      Wed Oct 28 04:23:25 2026
+  Type:         Flat Device Tree
+  Compression:  uncompressed
+  Data Size:    73856 Bytes = 72.12 KiB = 0.07 MiB
+  Architecture: Unknown Architecture
+  Hash algo:    sha256
+  Hash value:   3f19b134c9c5b18ca3d18899bdda953a95a2c2691f11508dbdfd084e75e19ee1
+ Default Configuration: 'config-1'
+ Configuration 0 (config-1)
+  Description:  rockchip/rk3568-z96a-laptop-v2.dtb
+  Kernel:       unavailable
+  Firmware:     atf-1
+  FDT:          fdt-1
+  Loadables:    u-boot
+                atf-2
+                atf-3
+                atf-4
+                atf-5
+                atf-6

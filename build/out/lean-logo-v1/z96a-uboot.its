@@ -1,0 +1,120 @@
+/dts-v1/;
+
+/ {
+	description = "FIT image for U-Boot with bl31 (TF-A)";
+	#address-cells = <1>;
+
+	images {
+		u-boot {
+			description = "U-Boot";
+			data = /incbin/("/home/hsy/project/rea-z97a/build/out/lean-logo-v1/u-boot-nodtb.bin");
+			type = "standalone";
+			arch = "arm64";
+			compression = "none";
+			load = <0x00800000>;
+			entry = <0x00800000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+
+		atf-1 {
+			description = "ARM Trusted Firmware";
+			data = /incbin/("/home/hsy/project/rea-z97a/build/atf/atf-1.bin");
+			type = "firmware";
+			arch = "arm64";
+			os = "arm-trusted-firmware";
+			compression = "none";
+			load = <0x00040000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+
+		atf-2 {
+			description = "ARM Trusted Firmware";
+			data = /incbin/("/home/hsy/project/rea-z97a/build/atf/atf-2.bin");
+			type = "firmware";
+			arch = "arm64";
+			os = "arm-trusted-firmware";
+			compression = "none";
+			load = <0x0005a000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+
+		atf-3 {
+			description = "ARM Trusted Firmware";
+			data = /incbin/("/home/hsy/project/rea-z97a/build/atf/atf-3.bin");
+			type = "firmware";
+			arch = "arm64";
+			os = "arm-trusted-firmware";
+			compression = "none";
+			load = <0x0005c000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+
+		atf-4 {
+			description = "ARM Trusted Firmware";
+			data = /incbin/("/home/hsy/project/rea-z97a/build/atf/atf-4.bin");
+			type = "firmware";
+			arch = "arm64";
+			os = "arm-trusted-firmware";
+			compression = "none";
+			load = <0xfdcc1000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+
+		atf-5 {
+			description = "ARM Trusted Firmware";
+			data = /incbin/("/home/hsy/project/rea-z97a/build/atf/atf-5.bin");
+			type = "firmware";
+			arch = "arm64";
+			os = "arm-trusted-firmware";
+			compression = "none";
+			load = <0xfdcce000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+
+		atf-6 {
+			description = "ARM Trusted Firmware";
+			data = /incbin/("/home/hsy/project/rea-z97a/build/atf/atf-6.bin");
+			type = "firmware";
+			arch = "arm64";
+			os = "arm-trusted-firmware";
+			compression = "none";
+			load = <0xfdcd0000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+
+		fdt-1 {
+			description = "fdt-rockchip/rk3568-z96a-laptop-v2";
+			data = /incbin/("/home/hsy/project/rea-z97a/build/out/lean-logo-v1/u-boot.dtb");
+			type = "flat_dt";
+			compression = "none";
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+	};
+
+	configurations {
+		default = "config-1";
+
+		config-1 {
+			description = "rockchip/rk3568-z96a-laptop-v2.dtb";
+			firmware = "atf-1";
+			loadables = "u-boot", "atf-2", "atf-3", "atf-4", "atf-5", "atf-6";
+			fdt = "fdt-1";
+		};
+	};
+};

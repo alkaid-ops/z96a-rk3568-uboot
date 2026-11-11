@@ -61,3 +61,19 @@
 *.pyc
 __pycache__/
 .DS_Store
+
+# Upstream Armbian tree is a local checkout, not vendored.
+# Only the z96a-specific recipe files already tracked below are kept in Git;
+# add any new one explicitly with "git add -f".
+/armbian-uboot/
+
+# Large vendor/analysis blobs: released as assets or regenerated locally
+/artifacts/android/
+/artifacts/mainline-uboot/*.bin
+/artifacts/mainline-uboot/*.img
+/artifacts/mainline-uboot/*.itb
+/artifacts/mainline-uboot/*.deb
+/artifacts/mainline-uboot/extracted/
+/artifacts/mainline-uboot/source-snapshot/
+/artifacts/vendor-uboot/*.bin
+/artifacts/vendor-uboot/*.c

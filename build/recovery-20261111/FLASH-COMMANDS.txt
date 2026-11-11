@@ -1,0 +1,36 @@
+Z96A boot-chain recovery / DDR 1560MHz test, 2026-11-11
+
+Files:
+  MiniLoaderAll.bin                465344 bytes  3750caaf...
+  idbloader-a.img                  204800 bytes  367d32ac...  (current A SPL, DDR 1184MHz)
+  idbloader-1560-vendor-rksd.img   204800 bytes  35c368f3...  (vendor v1.13 DDR, 1560MHz)
+  idbloader-1560-v126-rksd.img     204800 bytes  2e9d3273...  (rkbin v1.26 DDR, 1560MHz)
+  u-boot-p1.itb                    1221120 bytes 3dd68203...  (known-good P1 FIT)
+
+The two idbloader-1560 files were built with:
+  mkimage -n rk3568 -T rksd -d <ddr-blob>:<spl-region> <out>
+so the RKNS header contains the correct SHA-256 for the DDR blob and the
+unchanged A SPL.  The files named *.invalid-stale-header were hand-edited
+before this and must NOT be flashed.
+
+Windows RKDevTool (maskrom):
+  1. 高级功能: select MiniLoaderAll.bin, click 下载 (RAM address 0xCCCCCCCC).
+  2. 下载镜像: clear the table, add ONE row for the DDR-test idbloader:
+       eMMC / address 0x40 / path idbloader-1560-vendor-rksd.img
+     (or idbloader-1560-v126-rksd.img for the generic variant).
+     Check 强制按地址写, click 执行.
+  3. Do NOT write u-boot-p1.itb unless it was damaged; the P1 FIT at
+     0x4000 is intact.  Do NOT write GPT/parameter.
+  4. Reboot.
+
+Rollback if the 1560 idbloader does not boot:
+  - Enter maskrom again, load MiniLoaderAll.bin, write idbloader-a.img
+    at 0x40, reboot.  The P1 FIT remains untouched.
+
+Expected:
+  - Vendor v1.13 blob: exact DDR init used by the vendor on this board,
+    vendor kernel DTS OPP and lpddr4x params say 1560MHz.  Highest
+    confidence.
+  - rkbin v1.26 blob: newer generic RK3568 tuning, 1560MHz by filename,
+    not validated on this exact LPDDR4X x32 board.  Use only after the
+    vendor blob is confirmed working.

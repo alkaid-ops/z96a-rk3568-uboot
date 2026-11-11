@@ -1,0 +1,115 @@
+FIT description: FIT Image with ATF/OP-TEE/U-Boot/MCU
+Created:         Tue Mar  4 15:40:57 2025
+ Image 0 (uboot)
+  Description:  U-Boot
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Standalone Program
+  Compression:  uncompressed
+  Data Size:    1246064 Bytes = 1216.86 KiB = 1.19 MiB
+  Architecture: AArch64
+  Load Address: 0x00a00000
+  Entry Point:  unavailable
+  Hash algo:    sha256
+  Hash value:   3155f16007af31e3ff7a289be4ec31146f7bb9b630efdb72dccf4f3bcaea6340
+ Image 1 (atf-1)
+  Description:  ARM Trusted Firmware
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    167936 Bytes = 164.00 KiB = 0.16 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x00040000
+  Hash algo:    sha256
+  Hash value:   b5946ac63df8fb3569407a75cf2f6aa396551ba011e1a84bec654dc9982ba063
+ Image 2 (atf-2)
+  Description:  ARM Trusted Firmware
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    40960 Bytes = 40.00 KiB = 0.04 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcc1000
+  Hash algo:    sha256
+  Hash value:   b8dca786b41f8beb12e2434c1698e344931777099aa0e5729b76fcda2f781907
+ Image 3 (atf-3)
+  Description:  ARM Trusted Firmware
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    20291 Bytes = 19.82 KiB = 0.02 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x0006b000
+  Hash algo:    sha256
+  Hash value:   2f91089eb714c78d9fb81f005859beda7f1709e04a858e4db732cb8f9800e727
+ Image 4 (atf-4)
+  Description:  ARM Trusted Firmware
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    8192 Bytes = 8.00 KiB = 0.01 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcd0000
+  Hash algo:    sha256
+  Hash value:   0b2b146c608fb46195852ab008f179c3e4ea399d38af589691d72705fbfde654
+ Image 5 (atf-5)
+  Description:  ARM Trusted Firmware
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    8192 Bytes = 8.00 KiB = 0.01 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcce000
+  Hash algo:    sha256
+  Hash value:   86ef8857484c5cd51363c3dd8338818c7bdc687e48c57897578781f10270a515
+ Image 6 (atf-6)
+  Description:  ARM Trusted Firmware
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    7916 Bytes = 7.73 KiB = 0.01 MiB
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x00069000
+  Hash algo:    sha256
+  Hash value:   a9a1e63bef11a6776a9670708fe78211ddcc437cc4ab145e1cfef77cea8607e4
+ Image 7 (optee)
+  Description:  OP-TEE
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Firmware
+  Compression:  uncompressed
+  Data Size:    457112 Bytes = 446.40 KiB = 0.44 MiB
+  Architecture: AArch64
+  OS:           Unknown OS
+  Load Address: 0x08400000
+  Hash algo:    sha256
+  Hash value:   66bbd173528d12e9739c336926e33ee1ac1f4c7078fcac5712eeb8747d02163e
+ Image 8 (fdt)
+  Description:  U-Boot dtb
+  Created:      Tue Mar  4 15:40:57 2025
+  Type:         Flat Device Tree
+  Compression:  uncompressed
+  Data Size:    14285 Bytes = 13.95 KiB = 0.01 MiB
+  Architecture: AArch64
+  Hash algo:    sha256
+  Hash value:   fcfda359c09a8b315de67f0f6a4db29122f97fadfa185d0d4a9aee69488cc76d
+ Default Configuration: 'conf'
+ Configuration 0 (conf)
+  Description:  rk3568-evb
+  Kernel:       unavailable
+  Firmware:     atf-1
+  FDT:          fdt
+  Loadables:    uboot
+                atf-2
+                atf-3
+                atf-4
+                atf-5
+                atf-6
+                optee
+  Sign algo:    sha256,rsa2048:dev
+  Sign value:   unavailable
+  Timestamp:    unavailable

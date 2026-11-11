@@ -1,0 +1,65 @@
+ Image 0 (u-boot)
+  Type:         Standalone Program
+  Compression:  uncompressed
+  Architecture: AArch64
+  Load Address: 0x00800000
+  Entry Point:  0x00800000
+  Hash algo:    sha256
+ Image 1 (atf-1)
+  Type:         Firmware
+  Compression:  uncompressed
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x00040000
+  Hash algo:    sha256
+ Image 2 (atf-2)
+  Type:         Firmware
+  Compression:  uncompressed
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x0005a000
+  Hash algo:    sha256
+ Image 3 (atf-3)
+  Type:         Firmware
+  Compression:  uncompressed
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0x0005c000
+  Hash algo:    sha256
+ Image 4 (atf-4)
+  Type:         Firmware
+  Compression:  uncompressed
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcc1000
+  Hash algo:    sha256
+ Image 5 (atf-5)
+  Type:         Firmware
+  Compression:  uncompressed
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcce000
+  Hash algo:    sha256
+ Image 6 (atf-6)
+  Type:         Firmware
+  Compression:  uncompressed
+  Architecture: AArch64
+  OS:           ARM Trusted Firmware
+  Load Address: 0xfdcd0000
+  Hash algo:    sha256
+ Image 7 (fdt-1)
+  Type:         Flat Device Tree
+  Compression:  uncompressed
+  Architecture: Unknown Architecture
+  Hash algo:    sha256
+ Default Configuration: 'config-1'
+ Configuration 0 (config-1)
+  Kernel:       unavailable
+  Firmware:     atf-1
+  FDT:          fdt-1
+  Loadables:    u-boot
+                atf-2
+                atf-3
+                atf-4
+                atf-5
+                atf-6

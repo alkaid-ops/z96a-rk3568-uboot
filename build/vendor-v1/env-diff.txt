@@ -1,0 +1,15 @@
+# vendor default environment diff (original -> V1)
+
+CHANGED  bootcmd
+   - sysboot mmc 0:9 any 0x00c00000 /extlinux/extlinux.conf                
+   + setenv devnum 0; usb start; if usb dev 0; then setenv devtype usb; run scan_dev_for_boot_part; fi; run bootcmd_mmc0; sysboot mmc 0:1 any 0x00c00000 /extlinux/extlinux.conf
+REMOVED  partitions  (was 762 chars)
+CHANGED  stderr
+   - serial,vidconsole
+   + serial
+CHANGED  stdin
+   - serial,usbkbd
+   + serial
+CHANGED  stdout
+   - serial,vidconsole
+   + serial

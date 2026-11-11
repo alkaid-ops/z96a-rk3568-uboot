@@ -1,0 +1,9 @@
+usb start
+if load usb 0:1 0x00800000 u-boot-fit-dtb-prod.bin; then
+  load usb 0:1 0x08100000 z96a-logo.bin.gz;
+  if load usb 0:1 0x10000000 z96a_chainload.bin; then
+    if fatrm usb 0:1 boot.scr; then
+      go 0x10000000
+    fi
+  fi
+fi

@@ -1,0 +1,4775 @@
+diff --git a/arch/arm/dts/rk3568-z96a-laptop-v2-u-boot.dtsi b/arch/arm/dts/rk3568-z96a-laptop-v2-u-boot.dtsi
+index 81470055ca..84e94ee13b 100644
+--- a/arch/arm/dts/rk3568-z96a-laptop-v2-u-boot.dtsi
++++ b/arch/arm/dts/rk3568-z96a-laptop-v2-u-boot.dtsi
+@@ -23,3 +23,12 @@
+ &vcca_1v8 {
+ 	bootph-all;
+ };
++
++/*
++ * The SoC rk356x-u-boot.dtsi sets max-frequency = <200000000> on the eMMC
++ * controller after the board DTS.  Override it here: this board's eMMC is
++ * only reliable at 50MHz (HS400 writes fail; HS200/50MHz is stable).
++ */
++&sdhci {
++	max-frequency = <50000000>;
++};
+diff --git a/arch/arm/include/asm/arch-rockchip/vop_rk3568.h b/arch/arm/include/asm/arch-rockchip/vop_rk3568.h
+new file mode 100644
+index 0000000000..b5ef45c457
+--- /dev/null
++++ b/arch/arm/include/asm/arch-rockchip/vop_rk3568.h
+@@ -0,0 +1,280 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2024 - 2025 Dang Huynh <dang.huynh@mainlining.org>
++ *
++ * Based on vop_rk3288.h:
++ *   Copyright (c) 2015 Google, Inc
++ *   Copyright 2014 Rockchip Inc.
++ */
++
++#ifndef _ASM_ARCH_VOP_RK3568_H
++#define _ASM_ARCH_VOP_RK3568_H
++
++struct rk3568_vop_sysctrl {
++	u32 reg_cfg_done;
++	u32 version_info;
++	u32 autogating_ctrl;
++	u32 win_reg_cfg_done;
++	u32 axi_ctrl0;
++	u32 axi_hurry_ctrl0;
++	u32 axi_hurry_ctrl1;
++	u32 axi_outstanding_ctrl0;
++	u32 axi_outstanding_ctrl1;
++	u32 axi_lut_ctrl;
++	u32 dsp_en;
++	u32 dsp_ctrl;
++	u32 dsp_pol;
++	u32 pwr_ctrl;
++	u32 var_freq_ctrl;
++	u32 mmu_raddr_range;
++	u32 wb_ctrl0;
++	u32 wb_xspd;
++	u32 wb_yrgb_mst;
++	u32 wb_cbr_mst;
++	u32 otp_win;
++	u32 otp_mirr_ctrl;
++	u32 lut_port_sel;
++	u32 pwr_stable_ctrl;
++	u32 status0;
++	u32 status1;
++	u32 status2;
++	u32 status3;
++	u32 line_flag0;
++	u32 line_flag1;
++	u32 line_flag2;
++	u32 line_flag3;
++	u32 sys0_intr_en;
++	u32 sys0_intr_clr;
++	u32 sys0_intr_status;
++	u32 sys0_intr_status_raw;
++	u32 sys1_intr_en;
++	u32 sys1_intr_clr;
++	u32 sys1_intr_status;
++	u32 sys1_intr_status_raw;
++	u32 port0_intr_en;
++	u32 port0_intr_clr;
++	u32 port0_intr_status;
++	u32 port0_intr_status_raw;
++	u32 port1_intr_en;
++	u32 port1_intr_clr;
++	u32 port1_intr_status;
++	u32 port1_intr_status_raw;
++	u32 port2_intr_en;
++	u32 port2_intr_clr;
++	u32 port2_intr_status;
++	u32 port2_intr_status_raw;
++	u32 port3_intr_en;
++	u32 port3_intr_clr;
++	u32 port3_intr_status;
++	u32 port3_intr_status_raw;
++};
++
++check_member(rk3568_vop_sysctrl, port3_intr_status_raw, 0x00DC);
++
++struct rk3568_vop_overlay {
++	u32 overlay_ctrl;
++	u32 layer_sel;
++	u32 port_sel;
++};
++
++check_member(rk3568_vop_overlay, port_sel, 0x0008);
++
++struct rk3568_vop_post {
++	u32 dsp_ctrl;
++	u32 mipi_ctrl;
++	u32 color_ctrl;
++	u32 reserved2;
++	u32 lut_reserved[4];
++	u32 reserved[3];
++	u32 dsp_bg;
++	u32 prescan_htimings;
++	u32 dsp_hact_info;
++	u32 dsp_vact_info;
++	u32 scl_factor_yrgb;
++	u32 scl_ctrl;
++	u32 dsp_vact_info_f1;
++	u32 dsp_htotal_hs_end;
++	u32 dsp_hact_st_end;
++	u32 dsp_vtotal_vs_end;
++	u32 dsp_vact_st_end;
++	u32 dsp_vs_st_end_f1;
++	u32 dsp_vact_st_end_f1;
++};
++
++check_member(rk3568_vop_post, dsp_vact_st_end_f1, 0x005C);
++
++struct rk3568_vop_cluster {
++	u32 win0_ctrl0;
++	u32 win0_ctrl1;
++	u32 win0_ctrl2;
++	u32 reserved0;
++	u32 win0_mst_yrgb;
++	u32 win0_mst_cbcr;
++	u32 win0_vir;
++	u32 reserved1;
++	u32 win0_act_info;
++	u32 win0_dsp_info;
++	u32 win0_dsp_st;
++	u32 win0_dsp_bg;
++	u32 win0_scl_factor_yrgb;
++	u32 reserved2;
++	u32 win0_scl_offset;
++	u32 win0_transformed_offset;
++	u32 reserved3[4];
++	u32 win0_afbcd_output_ctrl;
++	u32 win0_afbcd_mode;
++	u32 win0_afbcd_hdr_ptr;
++	u32 win0_afbcd_vir_width;
++	u32 win0_afbcd_size;
++	u32 win0_afbcd_pic_offset;
++	u32 win0_afbcd_dis_offset;
++	u32 win0_afbcd_ctrl;
++};
++
++check_member(rk3568_vop_cluster, win0_afbcd_ctrl, 0x006C);
++
++struct rk3568_vop_esmart {
++	u32 esmart_ctrl0;
++	u32 esmart_ctrl1;
++	u32 reserved0[2];
++	u32 esmart_region0_mst_ctl;
++	u32 esmart_region0_mst_yrgb;
++	u32 esmart_region0_mst_cbcr;
++	u32 esmart_region0_vir;
++	u32 esmart_region0_act_info;
++	u32 esmart_region0_dsp_info;
++	u32 esmart_region0_dsp_offset;
++	u32 reserved1[1];
++	u32 esmart_region0_scl_ctrl;
++	u32 esmart_region0_scl_factor_yrgb;
++	u32 esmart_region0_scl_factor_cbcr;
++	u32 esmart_region0_scl_offset;
++};
++
++check_member(rk3568_vop_esmart, esmart_region0_scl_offset, 0x003C);
++
++enum rockchip_fb_data_format_t {
++	ARGB8888 = 0,
++	RGB888 = 1,
++	RGB565 = 2,
++};
++
++enum vop_modes {
++	VOP_MODE_EDP = 0,
++	VOP_MODE_MIPI,
++	VOP_MODE_HDMI,
++	VOP_MODE_LVDS,
++	VOP_MODE_DP,
++};
++
++/* OFFSETS */
++#define VOP2_SYSREG_OFFSET 0x0
++#define VOP2_OVERLAY_OFFSET 0x0600
++#define VOP2_POST_OFFSET(n) 0x0c00 + ((n) * 0x100)
++#define VOP2_CLUSTER_OFFSET(n) 0x1000 + ((n) * 0x200)
++#define VOP2_ESMART_OFFSET(n) 0x1800 + ((n) * 0x200)
++
++/* System Registers */
++/* REG_CFG_DONE */
++#define M_GLOBAL_REGDONE (1 << 15)
++#define M_LOAD_GLOBAL(x) (1 << ((x) & 3))
++
++#define V_GLOBAL_REGDONE(x) (((x) & 1) << 15)
++#define V_LOAD_GLOBAL(x, y) (((y) & 1) << ((x) & 3))
++
++/* VERSION_INFO */
++#define M_FPGA_VERSION  (0xffff << 16)
++#define M_RTL_VERSION (0xffff)
++
++/* AUTO_GATING_CTRL */
++#define M_AUTO_GATING (1 << 31)
++#define V_AUTO_GATING(x) (((x) & 1) << 31)
++
++/* DSP_INFACE_POL */
++#define M_DSP_INFACE_REGDONE (1 << 28)
++#define V_DSP_INFACE_REGDONE(x) (((x) & 1) << 28)
++
++/* OTP_WIN_EN */
++#define M_OTP_WIN (1 << 0)
++#define V_OTP_WIN(x) (((x) & 1) << 0)
++
++/* Overlay */
++/* OVERLAY_CTRL */
++#define M_LAYER_SEL_REGDONE_SEL (3 << 30)
++#define M_LAYER_SEL_REGDONE_EN (1 << 28)
++#define M_VP_OVERLAY_MODE(vp) (1 << ((vp) & 3))
++
++#define V_LAYER_SEL_REGDONE_SEL(x) (((x) & 3) << 30)
++#define V_LAYER_SEL_REGDONE_EN(x) (((x) & 1) << 28)
++#define V_VP_OVERLAY_MODE(x, vp) (((x) & 1) << ((vp) & 3))
++
++/* LAYER_SEL */
++#define V_LAYER_SEL(x, port) (((port) & 7) << 4 * ((x) & 7))
++
++/* PORT_SEL */
++#define V_ESMART_SEL_PORT(x, vp) (((vp) & 3) << (24 + (2 * ((x) & 3))))
++#define V_CLUSTER_SEL_PORT(x, vp) (((vp) & 3) << (16 + (2 * ((x) & 3))))
++#define V_PORT_MUX(x, vp) (((x) & 0xf) << 4 * ((vp) & 3))
++
++/* Post processing */
++/* DSP_CTRL */
++#define M_POST_STANDBY (1 << 31)
++#define M_POST_FP_STANDBY (1 << 30)
++#define M_POST_BLACK (1 << 27)
++#define M_POST_OUT_ZERO (1 << 26)
++#define M_POST_LB_MODE (1 << 23)
++#define M_PRE_DITHER_DOWN (1 << 16)
++#define M_DSP_OUT_MODE (0xf)
++
++#define V_POST_STANDBY(x) (((x) & 1) << 31)
++#define V_POST_FP_STANDBY(x) (((x) & 1) << 30)
++#define V_POST_BLACK(x) (((x) & 1) << 27)
++#define V_POST_OUT_ZERO(x) (((x) & 1) << 26)
++#define V_POST_LB_MODE(x) (((x) & 1) << 23)
++#define V_PRE_DITHER_DOWN(x) (((x) & 1) << 16)
++#define V_DSP_OUT_MODE(x) ((x) & 0xf)
++
++/* COLOR_CTRL */
++#define M_POST_COLORBAR_MODE (1 << 1)
++#define M_POST_COLORBAR_EN (1 << 0)
++
++#define V_POST_COLORBAR_MODE(x) (((x) & 1) << 1)
++#define V_POST_COLORBAR_EN(x) (((x) & 1) << 0)
++
++/* DSP_BG */
++#define M_DSP_BG_RED     (0x3f << 20)
++#define M_DSP_BG_GREEN   (0x3f << 10)
++#define M_DSP_BG_BLUE    (0x3f << 0)
++
++#define V_DSP_BG_RED(x)     (((x) & 0x3f) << 20)
++#define V_DSP_BG_GREEN(x)   (((x) & 0x3f) << 10)
++#define V_DSP_BG_BLUE(x)    (((x) & 0x3f) << 0)
++
++/* ESMART */
++#define M_ESMART_REGION0_MST_EN (1 << 0)
++#define V_ESMART_REGION0_DATA_FMT(x)        (((x) & 0x1f) << 1)
++
++/* VOP2_ESMART_REGION0_VIR */
++#define V_ARGB888_VIRWIDTH(x)	(((x) & 0xffff) << 0)
++#define V_RGB888_VIRWIDTH(x)	((((((x) * 3) >> 2) + ((x) % 3)) & 0xffff) << 0)
++#define V_RGB565_VIRWIDTH(x)	((((x) / 2) & 0xffff) << 0)
++#define YUV_VIRWIDTH(x)		((((x) / 4) & 0xffff) << 0)
++
++#define V_ACT_HEIGHT(x)         (((x) & 0x1fff) << 16)
++#define V_ACT_WIDTH(x)          ((x) & 0x1fff)
++#define V_DSP_HEIGHT(x)         (((x) & 0x1fff) << 16)
++#define V_DSP_WIDTH(x)          ((x) & 0x1fff)
++#define V_DSP_YST(x)         (((x) & 0x1fff) << 16)
++#define V_DSP_XST(x)          ((x) & 0x1fff)
++
++#define V_HSYNC(x)		(((x) & 0x1fff) << 0)   /* hsync pulse width */
++#define V_HORPRD(x)		(((x) & 0x1fff) << 16)   /* horizontal period */
++#define V_VSYNC(x)		(((x) & 0x1fff) << 0)
++#define V_VERPRD(x)		(((x) & 0x1fff) << 16)
++
++#define V_HEAP(x)		(((x) & 0x1fff) << 0)/* horizontal active end */
++#define V_HASP(x)		(((x) & 0x1fff) << 16)/* horizontal active start */
++#define V_VAEP(x)		(((x) & 0x1fff) << 0)
++#define V_VASP(x)		(((x) & 0x1fff) << 16)
++
++#endif
+diff --git a/board/rockchip/z96a_rk3568/Kconfig b/board/rockchip/z96a_rk3568/Kconfig
+index c1d7bcb7d7..dcd14f7ac4 100644
+--- a/board/rockchip/z96a_rk3568/Kconfig
++++ b/board/rockchip/z96a_rk3568/Kconfig
+@@ -9,4 +9,23 @@ config SYS_VENDOR
+ config SYS_CONFIG_NAME
+ 	default "z96a_rk3568"
+ 
++config Z96A_EDP_LOGO
++	bool "Enable the Z96A eDP logo path"
++	default n
++	help
++	  Allow the z96a_logo command to bind and probe the disabled VOP2
++	  node and show a logo on the internal eDP panel.  When disabled the
++	  command is a no-op and the display stack is never probed.
++
++config Z96A_DISPLAY_DIAG
++	bool "Enable RAM-test display diagnostics"
++	default n
++	depends on Z96A_EDP_LOGO
++	help
++	  Compile in the temporary RAM-test instrumentation: FAT stage
++	  markers, the three-phase visual observation window, the VOP post
++	  color bar and the eDP video BIST hook.  In production this must
++	  stay disabled so a display-enabled boot does not write to USB,
++	  blink the power LED for ten seconds or draw test patterns.
++
+ endif
+diff --git a/board/rockchip/z96a_rk3568/board.c b/board/rockchip/z96a_rk3568/board.c
+index 534716dcb1..64358d635a 100644
+--- a/board/rockchip/z96a_rk3568/board.c
++++ b/board/rockchip/z96a_rk3568/board.c
+@@ -18,14 +18,48 @@
+ #include <console.h>
+ #include <dm.h>
+ #include <dm/device.h>
++#include <dm/device-internal.h>
++#include <dm/ofnode.h>
++#include <dm/root.h>
+ #include <dm/uclass.h>
+ #include <env.h>
+-#include <led.h>
++#include <gzip.h>
+ #include <linux/delay.h>
+ #include <time.h>
+ #include <i2c.h>
+ #include <log.h>
+-#include <usb.h>
++#include <led.h>
++#include <video.h>
++
++/*
++ * Temporary RAM-test diagnostics shared with the video, eDP, panel and
++ * backlight drivers.  Each driver records the last successfully reached
++ * stage and the error from that stage; the status file written to USB
++ * prints all of them.
++ */
++int z96a_diag_vop_stage;
++int z96a_diag_vop_ret;
++int z96a_diag_vop_port = -1;
++int z96a_diag_vop_win_id = -1;
++int z96a_diag_vop_layer = -1;
++int z96a_diag_vop_esmart = -1;
++int z96a_diag_edp_stage;
++int z96a_diag_edp_ret;
++int z96a_diag_panel_stage;
++int z96a_diag_panel_ret;
++int z96a_diag_panel_timing_ret;
++int z96a_diag_panel_timing_off = -1;
++int z96a_diag_panel_timing_node = -1;
++int z96a_diag_edp_fallback;
++int z96a_diag_bl_stage;
++int z96a_diag_bl_ret;
++
++/*
++ * RAM-test only: when set, rk_edp_enable() keeps the panel backlight off
++ * until z96a_logo_display() has painted the framebuffer and calls
++ * z96a_edp_backlight_on().  Production leaves this at zero.
++ */
++int z96a_defer_backlight;
+ 
+ #define SC8886_I2C_BUS		"i2c@fdd40000"
+ #define SC8886_I2C_ADDR		0x6b
+@@ -35,9 +69,11 @@
+ #define SC8886_ADCIBAT		0x26	/* bit[6:0] OUTPUT_BAT_VOL */
+ #define SC8886_CHARGE_OPTION0	0x12	/* bit15 EN_LWPWR */
+ #define SC8886_CHARGE_OPTION2	0x32	/* bit12 EN_OTG */
+-#define SC8886_CHARGE_CURRENT	0x14	/* bits[12:6], 64 mA LSB */
++#define SC8886_CHARGE_CURRENT	0x02	/* bits[12:6], 64 mA LSB */
+ #define SC8886_PROCHOT_OPT0	0x36	/* VSYS_VTH/ICRIT_DEG/PROCHOT_WIDTH */
+ #define SC8886_PROCHOT_OPT1	0x37	/* IBAT short / VSYS_REG thresholds */
++#define SC8886_IN_FCHRG		BIT(2)	/* 0x21 bit2: fast charge */
++#define SC8886_IN_PRECHG	BIT(1)	/* 0x21 bit1: pre-charge */
+ 
+ /* factory values from SC8886 register dump (before any host writes) */
+ #define SC8886_PROCHOT_OPT0_VAL	0x65
+@@ -56,52 +92,6 @@
+ /* treat battery as usable above this voltage */
+ #define SC8886_BAT_OK_MV	3000
+ 
+-/* SC8886 charge status bits in the 16-bit view starting at 0x20 */
+-#define SC8886_IN_FCHRG		BIT(2)	/* 0x21 bit2: fast charge */
+-#define SC8886_IN_PRECHG	BIT(1)	/* 0x21 bit1: pre-charge */
+-
+-/* RK809 PMIC on the same I2C0 bus */
+-#define Z96A_PMIC_ADDR		0x20
+-#define Z96A_PMIC_ON_SOURCE	0xf5	/* BIT7 PWRON, BIT6 PLUG_IN */
+-#define Z96A_PMIC_INT_STS0	0xf8	/* W1C: BIT0 PWRON fall, BIT1 rise */
+-#define Z96A_PMIC_INT_MSK0	0xf9
+-#define Z96A_PMIC_ON_PWRON	BIT(7)
+-#define Z96A_PMIC_ON_PLUG_IN	BIT(6)
+-#define Z96A_PMIC_IRQ_PWRON	(BIT(0) | BIT(1))
+-
+-/* RK809 ON_SOURCE decoded on hardware 2026-11-10:
+- *   0x40 = cold plug-in  (PLUG_IN, no PWRON)
+- *   0x80 = power button  (PWRON, no PLUG_IN)
+- *   0x02 = warm Linux reboot (neither bit set)
+- * PMU_GRF OS registers are cleared by the warm reset, so no marker is
+- * needed: a plain `reboot` cannot match PLUG_IN and will boot normally.
+- */
+-
+-/* defined below, used by the charge loop above them */
+-static int sc8886_read16(struct udevice *chip, u8 reg, u16 *val);
+-
+-static int z96a_i2c_read8(struct udevice *bus, u8 addr, u8 reg, u8 *val)
+-{
+-	struct udevice *chip;
+-	int ret;
+-
+-	ret = i2c_get_chip(bus, addr, 1, &chip);
+-	if (ret)
+-		return ret;
+-	return dm_i2c_read(chip, reg, val, 1);
+-}
+-
+-static int z96a_i2c_write8(struct udevice *bus, u8 addr, u8 reg, u8 val)
+-{
+-	struct udevice *chip;
+-	int ret;
+-
+-	ret = i2c_get_chip(bus, addr, 1, &chip);
+-	if (ret)
+-		return ret;
+-	return dm_i2c_write(chip, reg, &val, 1);
+-}
+-
+ static void z96a_led_set(const char *label, bool on)
+ {
+ 	struct udevice *dev;
+@@ -126,137 +116,450 @@ static void z96a_leds_immediate(void)
+ 	z96a_led_set("z96a-led-full", false);
+ }
+ 
++#ifndef CONFIG_SPL_BUILD
++#if CONFIG_IS_ENABLED(VIDEO_ROCKCHIP)
++struct rkvop2_driverdata;
++extern struct rkvop2_driverdata rk3568_driverdata;
++extern void z96a_vop_test_colorbar(struct udevice *dev);
++extern void z96a_vop_test_colorbar_off(struct udevice *dev);
++extern void z96a_edp_bist_gray(int on);
++extern int z96a_edp_backlight_on(void);
++/*
++ * VOP2 is deliberately left out of the live DT and is only bound by
++ * z96a_logo, after relocation.  The video uclass normally reserves its
++ * frame buffer before relocation; with no pre-reloc video device it has
++ * no reservation at all (video_bottom == video_top) and the post-bind
++ * allocation fails with -ENOSPC.  Give it a dedicated window in free
++ * DRAM instead: 0x1f800000..0x20000000 on this board, well clear of
++ * kernel_addr_r (0x02000000), fdt_addr_r (0x12000000) and U-Boot
++ * itself (relocated near 0xeff00000).
++ */
++#define Z96A_FB_TOP		0x20000000UL
++#define Z96A_FB_RESERVE		0x02000000UL
++
++/* Diagnostic stage: 1=node, 2=bind, 3=probe, 4=framebuffer filled */
++static int z96a_logo_stage;
++
++/* VOP device bound by z96a_logo, reused by the visual window phases. */
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++static struct udevice *z96a_window_vop_dev;
++#endif
++
+ /*
+- * Minimal U-Boot charging mode: keep the SoC in U-Boot, show the charger
+- * state on the LEDs and leave as soon as the power key is pressed or the
+- * user hits Ctrl+C.  It never blocks the normal USB-first boot path
+- * unless the PMIC reports a cold plug-in event.
++ * RAM-test only: persist the last reached stage to the USB FAT before the
++ * next operation.  If the display path hangs or resets the SoC, the marker
++ * file survives and tells us exactly where it stopped.  The bootcmd has
++ * already executed "usb start" before z96a_logo.
++ *
++ * Production builds have Z96A_DISPLAY_DIAG disabled: markers become a
++ * no-op so a display-enabled production boot never writes to USB.
+  */
+-static void z96a_charge_loop(struct udevice *bus, struct udevice *charger)
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++void z96a_marker(const char *tag)
++{
++	char *buf = (char *)0x11000000UL;
++	char cmd[160];
++
++	snprintf(buf, 128, "marker=%s\n", tag);
++	snprintf(cmd, sizeof(cmd),
++		 "fatwrite usb 0:1 0x11000000 z96a-stage-%s.txt %x",
++		 tag, (unsigned int)strlen(buf));
++	run_command(cmd, 0);
++}
++#else
++void z96a_marker(const char *tag)
+ {
+-	u8 intsts;
++	(void)tag;
++}
++#endif
+ 
+-	/* clear any stale power-key latch before polling */
+-	z96a_i2c_write8(bus, Z96A_PMIC_ADDR, Z96A_PMIC_INT_STS0,
+-			Z96A_PMIC_IRQ_PWRON);
++#if CONFIG_IS_ENABLED(Z96A_EDP_LOGO)
++#define Z96A_LOGO_WIDTH		1920
++#define Z96A_LOGO_HEIGHT	1080
++#define Z96A_LOGO_BYTES		(Z96A_LOGO_WIDTH * Z96A_LOGO_HEIGHT * 4)
+ 
+-	printf("z96a-charge: charging mode; press power key or Ctrl+C to boot\n");
++/* Load address for the gzip logo read from eMMC /boot. */
++#define Z96A_LOGO_GZ_ADDR	0x08100000UL
++/* Scratch buffer used while decompressing the logo. */
++#define Z96A_LOGO_RAW_ADDR	0x09000000UL
+ 
+-	while (1) {
+-		u16 status = 0, prochot = 0;
+-		bool ac = false, charging = false, full = false;
++static bool z96a_logo_shown;
+ 
+-		if (!sc8886_read16(charger, SC8886_CHARGER_STATUS, &status) &&
+-		    !sc8886_read16(charger, SC8886_PROCHOT_STATUS, &prochot)) {
+-			ac = !!(status & SC8886_AC_STAT);
+-			charging = !!(prochot & (SC8886_IN_FCHRG |
+-						 SC8886_IN_PRECHG));
+-			full = !ac || !charging;
+-		}
+-		z96a_leds_update(ac, charging, full);
+-
+-		if (!z96a_i2c_read8(bus, Z96A_PMIC_ADDR, Z96A_PMIC_INT_STS0,
+-				    &intsts)) {
+-			if (intsts & Z96A_PMIC_IRQ_PWRON) {
+-				z96a_i2c_write8(bus, Z96A_PMIC_ADDR,
+-						Z96A_PMIC_INT_STS0,
+-						Z96A_PMIC_IRQ_PWRON);
+-				printf("z96a-charge: power key pressed, booting\n");
+-				break;
+-			}
+-		}
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++#define Z96A_LOGO_LOAD_ADDR	0x08000000UL
+ 
+-		if (ctrlc()) {
+-			printf("z96a-charge: Ctrl+C, booting\n");
+-			break;
+-		}
++/*
++ * RAM-test only: load a raw 1920x1080 BGRA (ARGB8888) image from the USB
++ * FAT and blit it into the video framebuffer.  The buffer address is clear
++ * of the eMMC-loaded gzip logo, the chainload stub (0x10000000), the
++ * marker buffer (0x11000000) and the framebuffer at 0x1f800000.
++ */
++static int z96a_logo_blit_from_usb(struct udevice *dev)
++{
++	const char *filesize;
++	char cmd[64];
++	char tag[48];
++	ulong size;
++	ulong fb;
++	int ret;
++
++	snprintf(cmd, sizeof(cmd),
++		 "fatload usb 0:1 %lx z96a-logo.bin", Z96A_LOGO_LOAD_ADDR);
++	ret = run_command(cmd, 0);
++	if (ret)
++		return ret;
+ 
+-		mdelay(200);
++	filesize = env_get("filesize");
++	if (!filesize)
++		return -ENOENT;
++	size = simple_strtoul(filesize, NULL, 16);
++	snprintf(tag, sizeof(tag), "logo_file_%lx", size);
++	z96a_marker(tag);
++	if (size != Z96A_LOGO_BYTES)
++		return -EINVAL;
++
++	fb = video_get_fb();
++	if (!fb)
++		return -ENODEV;
++
++	memcpy((void *)fb, (void *)Z96A_LOGO_LOAD_ADDR, Z96A_LOGO_BYTES);
++	video_sync(dev, true);
++	z96a_logo_shown = true;
++	z96a_marker("logo_blit_ok");
++	return 0;
++}
++#endif /* Z96A_DISPLAY_DIAG */
++
++/* Decompress the gzip logo at @src (length @srclen) and blit it. */
++static int z96a_logo_gunzip_blit(struct udevice *dev, ulong src, ulong srclen)
++{
++	/* gunzip() uses *lenp as the compressed input size on entry. */
++	unsigned long len = srclen;
++	ulong fb;
++	int ret;
++
++	ret = gunzip((void *)Z96A_LOGO_RAW_ADDR, Z96A_LOGO_BYTES,
++		     (unsigned char *)src, &len);
++	if (ret || len != Z96A_LOGO_BYTES) {
++		z96a_marker("logo_gunzip_fail");
++		return -EINVAL;
+ 	}
++
++	fb = video_get_fb();
++	if (!fb)
++		return -ENODEV;
++
++	memcpy((void *)fb, (void *)Z96A_LOGO_RAW_ADDR, Z96A_LOGO_BYTES);
++	video_sync(dev, true);
++	z96a_logo_shown = true;
++	z96a_marker("logo_gunzip_ok");
++	return 0;
+ }
+ 
+ /*
+- * Rescue priority: if a USB stick is already plugged in when the charger
+- * is connected, never sit in charging mode - boot it so a broken eMMC
+- * can always be recovered without maskrom or a power-key press.
++ * Show the boot logo.  The diagnostics build first tries the raw USB file
++ * for fast iteration; both builds then load the gzip from the eMMC /boot
++ * filesystem (mmc 1:1) and decompress it.  A missing file or decode error
++ * falls back to the white fill and never blocks the boot.
++ *
++ * Keeping the logo out of U-Boot proper and out of the FIT image leaves the
++ * SPL-visible layout identical to the proven P1 image.
+  */
+-static bool z96a_usb_storage_present(void)
++static int z96a_logo_show(struct udevice *dev)
+ {
+-#if defined(CONFIG_USB) && defined(CONFIG_USB_STORAGE)
+-	printf("z96a-charge: probing USB for a rescue stick\n");
+-	if (usb_init())
+-		return false;
+-	return usb_stor_scan(0) == 0;
+-#else
+-	return false;
++	const char *filesize;
++	char cmd[64];
++	ulong size;
++	int ret;
++
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++	if (!z96a_logo_blit_from_usb(dev))
++		return 0;
+ #endif
++
++	snprintf(cmd, sizeof(cmd),
++		 /*
++		  * DT aliases: mmc0 = &sdhci (eMMC), mmc1 = &sdmmc0 (SD).
++		  * The logo file lives on eMMC partition 1 (FAT /boot).
++		  */
++		 "load mmc 0:1 %lx z96a-logo.bin.gz", Z96A_LOGO_GZ_ADDR);
++	ret = run_command(cmd, 0);
++	if (ret) {
++		z96a_marker("logo_mmc_load_fail");
++		return ret;
++	}
++
++	filesize = env_get("filesize");
++	if (!filesize)
++		return -ENOENT;
++	size = simple_strtoul(filesize, NULL, 16);
++	z96a_marker("logo_mmc_loaded");
++	return z96a_logo_gunzip_blit(dev, Z96A_LOGO_GZ_ADDR, size);
+ }
++#endif /* Z96A_EDP_LOGO */
+ 
+-/*
+- * Decide between "charge while plugged in" and a normal boot.
+- *
+- * Only a cold plug-in event enters charging mode.  A power-key power-up
+- * boots normally, and a warm Linux reboot reports ON_SOURCE=0x02
+- * (neither PLUG_IN nor PWRON), so `reboot` under AC power also boots.
+- */
+-static void z96a_charge_gate(struct udevice *bus, struct udevice *charger)
++static int z96a_logo_display(void)
+ {
+-	const char *mode = env_get("z96a_charge");
+-	u8 on_source = 0;
+-	bool force = mode && !strcmp(mode, "force");
++	ofnode node = ofnode_path("/vop@fe040000");
++	struct udevice *dev;
++	int ret;
+ 
+-	if (mode && !strcmp(mode, "0")) {
+-		printf("z96a-charge: disabled by env z96a_charge=0\n");
+-		return;
++	z96a_logo_stage = 1;
++	if (!ofnode_valid(node)) {
++		printf("z96a-logo: VOP2 node not found\n");
++		return -ENODEV;
+ 	}
++	if (!ofnode_device_is_compatible(node, "rockchip,rk3568-vop"))
++		return -ENODEV;
+ 
+-	if (z96a_i2c_read8(bus, Z96A_PMIC_ADDR, Z96A_PMIC_ON_SOURCE,
+-			   &on_source)) {
+-		printf("z96a-charge: cannot read RK809 ON_SOURCE, normal boot\n");
+-		return;
++	gd->video_top = Z96A_FB_TOP;
++	gd->video_bottom = Z96A_FB_TOP - Z96A_FB_RESERVE;
++
++	z96a_logo_stage = 2;
++	z96a_marker("vop_bind");
++	ret = device_bind_with_driver_data(dm_root(), DM_DRIVER_GET(rk3568_vop),
++					   "z96a-vop", (ulong)&rk3568_driverdata,
++					   node, &dev);
++	if (ret) {
++		printf("z96a-logo: bind failed: %d\n", ret);
++		return ret;
++	}
++	if (dev_get_driver_data(dev) != (ulong)&rk3568_driverdata) {
++		device_unbind(dev);
++		return -EINVAL;
+ 	}
++	z96a_marker("vop_data_ok");
+ 
+-	printf("z96a-charge: ON_SOURCE=0x%02x pwr=%d plug=%d\n", on_source,
+-	       !!(on_source & Z96A_PMIC_ON_PWRON),
+-	       !!(on_source & Z96A_PMIC_ON_PLUG_IN));
++	z96a_logo_stage = 3;
++#if CONFIG_IS_ENABLED(Z96A_EDP_LOGO)
++	/* Keep the panel dark until the logo or fallback is in the framebuffer. */
++	z96a_defer_backlight = 1;
++#endif
++	z96a_marker("vop_probe");
++	ret = device_probe(dev);
++	if (ret) {
++		printf("z96a-logo: display probe failed: %d\n", ret);
++		device_unbind(dev);
++		return ret;
++	}
++	z96a_marker("vop_probe_done");
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++	z96a_window_vop_dev = dev;
++#endif
+ 
+-	if (!force) {
+-		if (!(on_source & Z96A_PMIC_ON_PLUG_IN)) {
+-			printf("z96a-charge: normal boot (battery/power key)\n");
+-			return;
+-		}
+-		if (on_source & Z96A_PMIC_ON_PWRON) {
+-			printf("z96a-charge: normal boot (power key)\n");
+-			return;
+-		}
+-		if (z96a_usb_storage_present()) {
+-			printf("z96a-charge: USB stick present, normal boot\n");
+-			return;
+-		}
++#if CONFIG_IS_ENABLED(Z96A_EDP_LOGO)
++	if (z96a_logo_show(dev)) {
++		z96a_marker("logo_show_fallback");
++		/* ARGB8888: an alpha of zero can make white transparent. */
++		video_fill(dev, 0xffffffff);
++		video_sync(dev, true);
+ 	}
++#else
++	/* ARGB8888: an alpha of zero can make white fully transparent. */
++	video_fill(dev, 0xffffffff);
++	video_sync(dev, true);
++#endif
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++	if (!z96a_logo_shown) {
++		z96a_marker("colorbar_enable");
++		z96a_vop_test_colorbar(dev);
++		z96a_marker("colorbar_enabled");
++	}
++#endif
++	z96a_logo_stage = 4;
++	z96a_marker("video_filled");
++#if CONFIG_IS_ENABLED(Z96A_EDP_LOGO)
++	z96a_marker("backlight_manual_on");
++	if (z96a_edp_backlight_on())
++		z96a_marker("backlight_manual_fail");
++	else
++		z96a_marker("backlight_manual_ok");
++#endif
+ 
+-	z96a_charge_loop(bus, charger);
++	return 0;
+ }
++#endif
+ 
+-static int do_z96a_charge(struct cmd_tbl *cmdtp, int flag, int argc,
+-			  char *const argv[])
++static int do_z96a_logo(struct cmd_tbl *cmdtp, int flag, int argc,
++			char *const argv[])
+ {
+-	struct udevice *bus, *charger;
++#if CONFIG_IS_ENABLED(VIDEO_ROCKCHIP)
++	char *status = (char *)0x11000000UL;
++	char errbuf[16];
++	int ret = 0;
+ 
+-	if (uclass_get_device_by_name(UCLASS_I2C, SC8886_I2C_BUS, &bus) ||
+-	    i2c_get_chip(bus, SC8886_I2C_ADDR, 1, &charger)) {
+-		printf("z96a-charge: I2C0/SC8886 unavailable\n");
+-		return CMD_RET_FAILURE;
+-	}
++	if (!CONFIG_IS_ENABLED(Z96A_EDP_LOGO))
++		return CMD_RET_SUCCESS;
++
++	z96a_marker("logo_entry");
++
++	/*
++	 * Never fail the boot command: whatever happens to the display,
++	 * the eMMC boot path must continue.
++	 */
++	ret = z96a_logo_display();
++	env_set("z96a_logo_result", ret ? "fail" : "ok");
++	snprintf(errbuf, sizeof(errbuf), "%d", ret);
++	env_set("z96a_logo_error", errbuf);
++
++	/*
++	 * Diagnostic status file: the bootcmd writes this buffer to the USB
++	 * FAT after z96a_logo, so the eMMC Linux can read the exact result.
++	 */
++	snprintf(status, 512,
++		 "result=%s error=%d stage=%d top=%lx bottom=%lx fb=%lx\n"
++		 "vop=%d/%d/%d win=%d/%d/%d edp=%d/%d panel=%d/%d bl=%d/%d\n"
++		 "pt=%d/%d/%d fb=%d\n",
++		 ret ? "fail" : "ok", ret, z96a_logo_stage,
++		 gd->video_top, gd->video_bottom, video_get_fb(),
++		 z96a_diag_vop_stage, z96a_diag_vop_ret,
++		 z96a_diag_vop_port,
++		 z96a_diag_vop_win_id, z96a_diag_vop_layer,
++		 z96a_diag_vop_esmart,
++		 z96a_diag_edp_stage, z96a_diag_edp_ret,
++		 z96a_diag_panel_stage, z96a_diag_panel_ret,
++		 z96a_diag_bl_stage, z96a_diag_bl_ret,
++		 z96a_diag_panel_timing_ret, z96a_diag_panel_timing_off,
++		 z96a_diag_panel_timing_node, z96a_diag_edp_fallback);
++	env_set_hex("z96a_status_addr", (ulong)status);
++	env_set_hex("z96a_status_len", strlen(status));
++
++	/* RAM test: do not change the charging/full LEDs to report status. */
++#endif
+ 
+-	z96a_charge_loop(bus, charger);
+ 	return CMD_RET_SUCCESS;
+ }
+ 
+-U_BOOT_CMD(z96a_charge, 1, 0, do_z96a_charge,
+-	   "enter Z96A U-Boot charging mode (LED + power key)",
++U_BOOT_CMD(z96a_logo, 1, 0, do_z96a_logo,
++	   "bind/probe the eDP display for the Z96A logo path",
+ 	   "");
+ 
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++/* RAM-test only: blink the power LED while still inside U-Boot. */
++static int do_z96a_visual_window(struct cmd_tbl *cmdtp, int flag, int argc,
++				 char *const argv[])
++{
++	struct udevice *led;
++	char tag[96];
++	u32 count, current, seen_change = 0;
++	u32 pad_high = 0, pad_low = 0;
++	int old_state = LEDST_OFF;
++	int ret, blink_ret = 0, i;
++
++	/*
++	 * A successful USB logo is left on screen so it stays visible until
++	 * Linux takes over; the phase test would overwrite it.
++	 */
++	if (z96a_logo_shown) {
++		z96a_marker("visual_window_skip_logo");
++		return CMD_RET_SUCCESS;
++	}
++
++	/* RAM-test readbacks: pin mux/route, panel supply and PWM counter. */
++	snprintf(tag, sizeof(tag), "mux_%x_route_%x",
++		 readl((void *)0xfdc60048UL), readl((void *)0xfdc60308UL));
++	z96a_marker(tag);
++	snprintf(tag, sizeof(tag), "lcd_dr_%x_ddr_%x_in_%x",
++		 readl((void *)0xfdd60004UL), readl((void *)0xfdd6000cUL),
++		 readl((void *)0xfdd60070UL));
++	z96a_marker(tag);
++	snprintf(tag, sizeof(tag), "pwm_reset_%x_sel_%x",
++		 readl((void *)0xfdd2045cUL), readl((void *)0xfdd20220UL));
++	z96a_marker(tag);
++	count = readl((void *)0xfe6f0010UL);
++	for (i = 0; i < 100; i++) {
++		udelay(3);
++		current = readl((void *)0xfe6f0010UL);
++		if (current != count)
++			seen_change = 1;
++	}
++	snprintf(tag, sizeof(tag), "pwm_counter_%x_to_%x_change_%x",
++		 count, current, seen_change);
++	z96a_marker(tag);
++	if (!(readl((void *)0xfdd2037cUL) & BIT(6))) {
++		for (i = 0; i < 100; i++) {
++			if (readl((void *)0xfe760070UL) & BIT(10))
++				pad_high++;
++			else
++				pad_low++;
++			udelay(3);
++		}
++		snprintf(tag, sizeof(tag), "pwm_pad_high_%x_low_%x",
++			 pad_high, pad_low);
++		z96a_marker(tag);
++	} else {
++		z96a_marker("pwm_pad_gpio3_clock_gated");
++	}
++
++	ret = led_get_by_label("z96a-led-power", &led);
++	if (!ret) {
++		old_state = led_get_state(led);
++		if (old_state < 0)
++			ret = old_state;
++	}
++	if (!ret)
++		z96a_marker("visual_power_blink_start");
++	else
++		z96a_marker("visual_power_led_error");
++
++#if CONFIG_IS_ENABLED(VIDEO_ROCKCHIP)
++	/*
++	 * RAM test: three clearly separated phases inside the blinking
++	 * window.  The VOP color bar (enabled by z96a_logo) is turned off
++	 * first so the baseline is unambiguous, then:
++	 *   iterations 0-2: blank (baseline)
++	 *   iterations 3-5: VOP post color bar (VOP -> eDP path)
++	 *   iterations 6-8: eDP controller BIST gray bars (bypasses VOP)
++	 *   iteration 9:    both off (blank)
++	 */
++	if (z96a_window_vop_dev) {
++		z96a_marker("win_colorbar_off");
++		z96a_vop_test_colorbar_off(z96a_window_vop_dev);
++	}
++#endif
++	for (i = 0; i < 10; i++) {
++		if (!ret && led_set_state(led, LEDST_ON))
++			blink_ret = -EIO;
++#if CONFIG_IS_ENABLED(VIDEO_ROCKCHIP)
++		switch (i) {
++		case 0:
++			z96a_marker("win_phase_blank_start");
++			break;
++		case 3:
++			z96a_marker("win_phase_colorbar_start");
++			if (z96a_window_vop_dev)
++				z96a_vop_test_colorbar(z96a_window_vop_dev);
++			break;
++		case 6:
++			z96a_marker("win_phase_bist_start");
++			if (z96a_window_vop_dev)
++				z96a_vop_test_colorbar_off(z96a_window_vop_dev);
++			z96a_edp_bist_gray(1);
++			break;
++		case 9:
++			z96a_marker("win_phase_bist_off");
++			z96a_edp_bist_gray(0);
++			break;
++		}
++#endif
++		mdelay(500);
++		if (!ret && led_set_state(led, LEDST_OFF))
++			blink_ret = -EIO;
++		mdelay(500);
++	}
++	z96a_marker("win_phase_done");
++	if (!ret)
++		led_set_state(led, old_state == LEDST_ON ? LEDST_ON : LEDST_OFF);
++	z96a_marker((ret || blink_ret) ? "visual_power_blink_error" :
++		    "visual_power_blink_end");
++	return CMD_RET_SUCCESS;
++}
++
++U_BOOT_CMD(z96a_visual_window, 1, 0, do_z96a_visual_window,
++	   "mark the RAM-test visual observation window", "");
++#endif /* CONFIG_Z96A_DISPLAY_DIAG */
++#endif /* !CONFIG_SPL_BUILD */
++
+ static int sc8886_read16(struct udevice *chip, u8 reg, u16 *val)
+ {
+ 	u8 buf[2];
+@@ -427,6 +730,19 @@ int rk_board_late_init(void)
+ 
+ 	z96a_leds_update(ac_present, charging, true);
+ 
++	/*
++	 * Vendor BQ25703 charger init (0xa7e3bc):
++	 *   clear watchdog (0x00 bits[15:13]),
++	 *   0x0c = 0x1200,
++	 *   0x0e = 0x1e00 (USB adapter) or 0x0a00.
++	 * AC presence is used as the adapter proxy; no AC -> 0x0a00.
++	 */
++	sc8886_update16(chip, 0x00, 0xe000, 0x0000);
++	sc8886_update16(chip, 0x0c, 0xffff, 0x1200);
++	sc8886_update16(chip, 0x0e, 0xffff, ac_present ? 0x1e00 : 0x0a00);
++	printf("z96a-pwr: charger init 0x00/0x0c=0x1200/0x0e=0x%04x\n",
++	       ac_present ? 0x1e00 : 0x0a00);
++
+ 	if (ac_present) {
+ 		/* C port has power: use it, never reverse-boost to VBUS */
+ 		sc8886_update16(chip, SC8886_CHARGE_OPTION2,
+@@ -434,13 +750,13 @@ int rk_board_late_init(void)
+ 		sc8886_update16(chip, SC8886_CHARGE_OPTION0,
+ 				SC8886_EN_LWPWR, 0);
+ 		/*
+-		 * Factory DT charges at 1 A (bq25700/SC8886 reg 0x14,
++		 * Factory DT charges at 1 A (BQ25703/SC8886 reg 0x02,
+ 		 * bits[12:6], 64 mA LSB). The kernel charger driver is
+ 		 * disabled in the z96a DTB, so the chip would charge at
+ 		 * its power-on default and sag VSYS with the adapter
+ 		 * plugged, which killed the NIC behind the OTG controller.
+ 		 */
+-		sc8886_update16(chip, SC8886_CHARGE_CURRENT, 0x7f00, 0x0400);
++		sc8886_update16(chip, SC8886_CHARGE_CURRENT, 0x1fc0, 0x0400);
+ 		env_set("z96a_power_src", "usb-c");
+ 		printf("z96a-pwr: source=USB-C, charge current 1024 mA\n");
+ 	} else if (!bat_removed && bat_mv >= SC8886_BAT_OK_MV) {
+@@ -460,11 +776,5 @@ int rk_board_late_init(void)
+ 		       bat_removed, bat_mv);
+ 	}
+ 
+-	/*
+-	 * Cold plug-in -> stay here and charge, power key / warm reboot ->
+-	 * fall through to the normal USB-first boot.
+-	 */
+-	z96a_charge_gate(bus, chip);
+-
+ 	return 0;
+ }
+diff --git a/configs/z96a-rk3568-laptop-v2-diag_defconfig b/configs/z96a-rk3568-laptop-v2-diag_defconfig
+new file mode 100644
+index 0000000000..9aed576906
+--- /dev/null
++++ b/configs/z96a-rk3568-laptop-v2-diag_defconfig
+@@ -0,0 +1,141 @@
++CONFIG_ARM=y
++CONFIG_SKIP_LOWLEVEL_INIT=y
++CONFIG_COUNTER_FREQUENCY=24000000
++CONFIG_ARCH_ROCKCHIP=y
++CONFIG_SF_DEFAULT_SPEED=24000000
++CONFIG_SF_DEFAULT_MODE=0x2000
++CONFIG_DEFAULT_DEVICE_TREE="rockchip/rk3568-z96a-laptop-v2"
++CONFIG_TARGET_Z96A_RK3568=y
++CONFIG_ROCKCHIP_RK3568=y
++CONFIG_ROCKCHIP_SPI_IMAGE=y
++CONFIG_SPL_SERIAL=y
++CONFIG_SYS_LOAD_ADDR=0xc00800
++CONFIG_SF_DEFAULT_BUS=4
++CONFIG_DEBUG_UART_BASE=0xFE660000
++CONFIG_DEBUG_UART_CLOCK=24000000
++CONFIG_SPL_SPI_FLASH_SUPPORT=y
++CONFIG_SPL_SPI=y
++CONFIG_PCI=y
++CONFIG_DEBUG_UART=y
++CONFIG_AHCI=y
++CONFIG_FIT=y
++CONFIG_FIT_VERBOSE=y
++CONFIG_SPL_FIT_SIGNATURE=y
++CONFIG_SPL_LOAD_FIT=y
++CONFIG_LEGACY_IMAGE_FORMAT=y
++CONFIG_DEFAULT_FDT_FILE="rockchip/rk3568-z96a-laptop-v2.dtb"
++# CONFIG_DISPLAY_CPUINFO is not set
++CONFIG_DISPLAY_BOARDINFO_LATE=y
++CONFIG_SPL_MAX_SIZE=0x40000
++# CONFIG_SPL_RAW_IMAGE_SUPPORT is not set
++CONFIG_SPL_SPI_LOAD=y
++CONFIG_SYS_SPI_U_BOOT_OFFS=0x60000
++CONFIG_SPL_ATF=y
++
++CONFIG_CMD_GPT=y
++
++CONFIG_CMD_MMC=y
++CONFIG_CMD_PCI=y
++CONFIG_CMD_POWEROFF=y
++CONFIG_CMD_USB=y
++CONFIG_CMD_ROCKUSB=y
++CONFIG_CMD_USB_MASS_STORAGE=y
++# CONFIG_CMD_SETEXPR is not set
++
++
++# CONFIG_SPL_DOS_PARTITION is not set
++CONFIG_SPL_OF_CONTROL=y
++CONFIG_OF_LIVE=y
++CONFIG_OF_SPL_REMOVE_PROPS="clock-names interrupt-parent assigned-clocks assigned-clock-rates assigned-clock-parents"
++CONFIG_ENV_RELOC_GD_ENV_ADDR=y
++CONFIG_SPL_DM_SEQ_ALIAS=y
++CONFIG_SPL_REGMAP=y
++CONFIG_SPL_SYSCON=y
++CONFIG_SCSI_AHCI=y
++CONFIG_AHCI_PCI=y
++CONFIG_SPL_CLK=y
++# CONFIG_USB_FUNCTION_FASTBOOT is not set
++
++
++CONFIG_LED=y
++CONFIG_LED_GPIO=y
++CONFIG_MISC=y
++CONFIG_SUPPORT_EMMC_RPMB=y
++CONFIG_MMC_DW=y
++CONFIG_MMC_DW_ROCKCHIP=y
++CONFIG_MMC_SDHCI=y
++CONFIG_MMC_SDHCI_SDMA=y
++CONFIG_MMC_SDHCI_ROCKCHIP=y
++CONFIG_SPI_FLASH_SFDP_SUPPORT=y
++CONFIG_SPI_FLASH_MACRONIX=y
++CONFIG_SPI_FLASH_XTX=y
++CONFIG_PHY_REALTEK=y
++CONFIG_DWC_ETH_QOS=y
++CONFIG_DWC_ETH_QOS_ROCKCHIP=y
++CONFIG_NVME_PCI=y
++CONFIG_PCIE_DW_ROCKCHIP=y
++CONFIG_PHY_ROCKCHIP_INNO_USB2=y
++CONFIG_PHY_ROCKCHIP_NANENG_COMBOPHY=y
++CONFIG_SPL_PINCTRL=y
++CONFIG_DM_PMIC=y
++CONFIG_DM_PMIC_FAN53555=y
++CONFIG_PMIC_RK8XX=y
++CONFIG_REGULATOR_RK8XX=y
++CONFIG_SPL_RAM=y
++CONFIG_SCSI=y
++CONFIG_BAUDRATE=1500000
++CONFIG_DEBUG_UART_SHIFT=2
++CONFIG_SYS_NS16550_MEM32=y
++CONFIG_ROCKCHIP_SFC=y
++CONFIG_SYSRESET=y
++CONFIG_USB=y
++CONFIG_USB_XHCI_HCD=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_EHCI_GENERIC=y
++CONFIG_USB_DWC3=y
++CONFIG_USB_DWC3_GENERIC=y
++CONFIG_USB_GADGET=y
++CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_USB_FUNCTION_ROCKUSB=y
++CONFIG_ERRNO_STR=y
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_DM=y
++CONFIG_CMD_REGULATOR=y
++CONFIG_CMD_PMIC=y
++CONFIG_CMD_MISC=y
++CONFIG_CMD_SOURCE=y
++CONFIG_ROCKCHIP_GPIO=y
++CONFIG_SYS_I2C_ROCKCHIP=y
++CONFIG_BOOTDELAY=3
++CONFIG_SYS_PROMPT="U-Boot Z96A-V2> "
++CONFIG_CMD_ADC=y
++CONFIG_ADC=y
++CONFIG_ADC_ROCKCHIP=y
++CONFIG_BUTTON=y
++CONFIG_BUTTON_ADC=y
++CONFIG_DM_REGULATOR=y
++CONFIG_DM_REGULATOR_FIXED=y
++CONFIG_VIDEO=y
++# CONFIG_CONSOLE_MUX is not set
++CONFIG_DISPLAY=y
++CONFIG_VIDEO_ROCKCHIP=y
++CONFIG_DISPLAY_ROCKCHIP_EDP=y
++CONFIG_PHY_ROCKCHIP_NANENG_EDP=y
++CONFIG_DM_PWM=y
++CONFIG_PWM_ROCKCHIP=y
++CONFIG_BACKLIGHT=y
++CONFIG_BACKLIGHT_PWM=y
++CONFIG_PANEL=y
++CONFIG_SIMPLE_PANEL=y
++CONFIG_VIDEO_LOGO=y
++CONFIG_Z96A_EDP_LOGO=y
++CONFIG_Z96A_DISPLAY_DIAG=y
++CONFIG_SPL_ADC=y
++CONFIG_DM_RNG=y
++CONFIG_RNG_ROCKCHIP=y
++CONFIG_CMD_KASLRSEED=y
++
++CONFIG_USE_PREBOOT=y
++CONFIG_PREBOOT="gpio set A27"
++CONFIG_SYSRESET_PSCI=y
+diff --git a/configs/z96a-rk3568-laptop-v2-lean_defconfig b/configs/z96a-rk3568-laptop-v2-lean_defconfig
+new file mode 100644
+index 0000000000..400fe91fb0
+--- /dev/null
++++ b/configs/z96a-rk3568-laptop-v2-lean_defconfig
+@@ -0,0 +1,138 @@
++CONFIG_ARM=y
++CONFIG_SKIP_LOWLEVEL_INIT=y
++CONFIG_COUNTER_FREQUENCY=24000000
++CONFIG_ARCH_ROCKCHIP=y
++CONFIG_SF_DEFAULT_SPEED=24000000
++CONFIG_SF_DEFAULT_MODE=0x2000
++CONFIG_DEFAULT_DEVICE_TREE="rockchip/rk3568-z96a-laptop-v2"
++CONFIG_TARGET_Z96A_RK3568=y
++CONFIG_ROCKCHIP_RK3568=y
++CONFIG_ROCKCHIP_SPI_IMAGE=y
++CONFIG_SPL_SERIAL=y
++CONFIG_SYS_LOAD_ADDR=0xc00800
++CONFIG_SF_DEFAULT_BUS=4
++CONFIG_DEBUG_UART_BASE=0xFE660000
++CONFIG_DEBUG_UART_CLOCK=24000000
++CONFIG_SPL_SPI_FLASH_SUPPORT=y
++CONFIG_SPL_SPI=y
++CONFIG_PCI=y
++CONFIG_DEBUG_UART=y
++CONFIG_AHCI=y
++CONFIG_FIT=y
++CONFIG_FIT_VERBOSE=y
++CONFIG_SPL_FIT_SIGNATURE=y
++CONFIG_SPL_LOAD_FIT=y
++CONFIG_LEGACY_IMAGE_FORMAT=y
++CONFIG_DEFAULT_FDT_FILE="rockchip/rk3568-z96a-laptop-v2.dtb"
++# CONFIG_DISPLAY_CPUINFO is not set
++CONFIG_DISPLAY_BOARDINFO_LATE=y
++CONFIG_SPL_MAX_SIZE=0x40000
++# CONFIG_SPL_RAW_IMAGE_SUPPORT is not set
++CONFIG_SPL_SPI_LOAD=y
++CONFIG_SYS_SPI_U_BOOT_OFFS=0x60000
++CONFIG_SPL_ATF=y
++
++CONFIG_CMD_GPT=y
++
++CONFIG_CMD_MMC=y
++CONFIG_CMD_PCI=y
++CONFIG_CMD_POWEROFF=y
++CONFIG_CMD_USB=y
++CONFIG_CMD_ROCKUSB=y
++CONFIG_CMD_USB_MASS_STORAGE=y
++# CONFIG_CMD_SETEXPR is not set
++
++
++# CONFIG_SPL_DOS_PARTITION is not set
++CONFIG_SPL_OF_CONTROL=y
++CONFIG_OF_LIVE=y
++CONFIG_OF_SPL_REMOVE_PROPS="clock-names interrupt-parent assigned-clocks assigned-clock-rates assigned-clock-parents"
++CONFIG_ENV_RELOC_GD_ENV_ADDR=y
++CONFIG_SPL_DM_SEQ_ALIAS=y
++CONFIG_SPL_REGMAP=y
++CONFIG_SPL_SYSCON=y
++CONFIG_SPL_CLK=y
++# CONFIG_USB_FUNCTION_FASTBOOT is not set
++
++
++CONFIG_LED=y
++CONFIG_LED_GPIO=y
++CONFIG_MISC=y
++CONFIG_SUPPORT_EMMC_RPMB=y
++CONFIG_MMC_DW=y
++CONFIG_MMC_DW_ROCKCHIP=y
++CONFIG_MMC_SDHCI=y
++CONFIG_MMC_SDHCI_SDMA=y
++CONFIG_MMC_SDHCI_ROCKCHIP=y
++CONFIG_PHY_REALTEK=y
++CONFIG_DWC_ETH_QOS=y
++CONFIG_DWC_ETH_QOS_ROCKCHIP=y
++CONFIG_PCIE_DW_ROCKCHIP=y
++CONFIG_PHY_ROCKCHIP_INNO_USB2=y
++CONFIG_PHY_ROCKCHIP_NANENG_COMBOPHY=y
++CONFIG_SPL_PINCTRL=y
++CONFIG_DM_PMIC=y
++CONFIG_DM_PMIC_FAN53555=y
++CONFIG_PMIC_RK8XX=y
++CONFIG_REGULATOR_RK8XX=y
++CONFIG_SPL_RAM=y
++CONFIG_BAUDRATE=1500000
++CONFIG_DEBUG_UART_SHIFT=2
++CONFIG_SYS_NS16550_MEM32=y
++CONFIG_ROCKCHIP_SFC=y
++CONFIG_SYSRESET=y
++CONFIG_USB=y
++CONFIG_USB_XHCI_HCD=y
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_EHCI_GENERIC=y
++CONFIG_USB_DWC3=y
++CONFIG_USB_DWC3_GENERIC=y
++CONFIG_USB_GADGET=y
++CONFIG_USB_GADGET_DOWNLOAD=y
++CONFIG_USB_FUNCTION_ROCKUSB=y
++CONFIG_ERRNO_STR=y
++CONFIG_CMD_GPIO=y
++CONFIG_CMD_I2C=y
++CONFIG_CMD_DM=y
++CONFIG_CMD_REGULATOR=y
++CONFIG_CMD_PMIC=y
++CONFIG_CMD_MISC=y
++CONFIG_CMD_SOURCE=y
++CONFIG_ROCKCHIP_GPIO=y
++CONFIG_SYS_I2C_ROCKCHIP=y
++CONFIG_BOOTDELAY=3
++CONFIG_SYS_PROMPT="U-Boot Z96A-V2> "
++CONFIG_CMD_ADC=y
++CONFIG_ADC=y
++CONFIG_ADC_ROCKCHIP=y
++CONFIG_BUTTON=y
++CONFIG_BUTTON_ADC=y
++CONFIG_DM_REGULATOR=y
++CONFIG_DM_REGULATOR_FIXED=y
++CONFIG_VIDEO=y
++# CONFIG_CONSOLE_MUX is not set
++CONFIG_DISPLAY=y
++CONFIG_VIDEO_ROCKCHIP=y
++CONFIG_DISPLAY_ROCKCHIP_EDP=y
++CONFIG_PHY_ROCKCHIP_NANENG_EDP=y
++CONFIG_DM_PWM=y
++CONFIG_PWM_ROCKCHIP=y
++CONFIG_BACKLIGHT=y
++CONFIG_BACKLIGHT_PWM=y
++CONFIG_PANEL=y
++CONFIG_SIMPLE_PANEL=y
++CONFIG_VIDEO_LOGO=y
++CONFIG_Z96A_EDP_LOGO=y
++CONFIG_SPL_ADC=y
++CONFIG_DM_RNG=y
++CONFIG_RNG_ROCKCHIP=y
++CONFIG_CMD_KASLRSEED=y
++
++CONFIG_USE_PREBOOT=y
++CONFIG_PREBOOT="gpio set A27"
++CONFIG_SYSRESET_PSCI=y
++CONFIG_NO_NET=y
++# CONFIG_EFI_LOADER is not set
++# CONFIG_SCSI is not set
++# CONFIG_NVME is not set
++# CONFIG_SPI_FLASH is not set
+diff --git a/configs/z96a-rk3568-laptop-v2_defconfig b/configs/z96a-rk3568-laptop-v2_defconfig
+index 3ac33fa34d..b657547b4d 100644
+--- a/configs/z96a-rk3568-laptop-v2_defconfig
++++ b/configs/z96a-rk3568-laptop-v2_defconfig
+@@ -107,7 +107,7 @@ CONFIG_CMD_MISC=y
+ CONFIG_CMD_SOURCE=y
+ CONFIG_ROCKCHIP_GPIO=y
+ CONFIG_SYS_I2C_ROCKCHIP=y
+-CONFIG_BOOTDELAY=3
++CONFIG_BOOTDELAY=0
+ CONFIG_SYS_PROMPT="U-Boot Z96A-V2> "
+ CONFIG_CMD_ADC=y
+ CONFIG_ADC=y
+@@ -116,20 +116,25 @@ CONFIG_BUTTON=y
+ CONFIG_BUTTON_ADC=y
+ CONFIG_DM_REGULATOR=y
+ CONFIG_DM_REGULATOR_FIXED=y
++CONFIG_VIDEO=y
++# CONFIG_CONSOLE_MUX is not set
++CONFIG_DISPLAY=y
++CONFIG_VIDEO_ROCKCHIP=y
++CONFIG_DISPLAY_ROCKCHIP_EDP=y
++CONFIG_PHY_ROCKCHIP_NANENG_EDP=y
++CONFIG_DM_PWM=y
++CONFIG_PWM_ROCKCHIP=y
++CONFIG_BACKLIGHT=y
++CONFIG_BACKLIGHT_PWM=y
++CONFIG_PANEL=y
++CONFIG_SIMPLE_PANEL=y
++CONFIG_VIDEO_LOGO=y
++CONFIG_Z96A_EDP_LOGO=y
+ CONFIG_SPL_ADC=y
+ CONFIG_DM_RNG=y
+ CONFIG_RNG_ROCKCHIP=y
+ CONFIG_CMD_KASLRSEED=y
+-CONFIG_BOOTSTD=y
+-CONFIG_BOOTSTD_FULL=y
+-CONFIG_BOOTSTD_DEFAULTS=y
+-CONFIG_BOOTMETH_EXTLINUX=y
+-CONFIG_BOOTMETH_SCRIPT=y
+-CONFIG_USB_STORAGE=y
+-CONFIG_USB_KEYBOARD=y
+ 
+-# Reproduce the deployed 2026.01-armbian image: same bootcmd prefix
+-# (early power GPIO pokes), explicit USB probe, then standard boot.
+-# CONFIG_LOCALVERSION_AUTO is not set
+-CONFIG_LOCALVERSION="armbian"
+-CONFIG_BOOTCOMMAND="gpio set A6; gpio set E11; gpio set E9; gpio set C31; usb start; bootflow scan -lb"
++CONFIG_USE_PREBOOT=y
++CONFIG_PREBOOT="gpio set A27"
++CONFIG_SYSRESET_PSCI=y
+diff --git a/drivers/clk/rockchip/clk_rk3568.c b/drivers/clk/rockchip/clk_rk3568.c
+index 533031caea..11bd74b93c 100644
+--- a/drivers/clk/rockchip/clk_rk3568.c
++++ b/drivers/clk/rockchip/clk_rk3568.c
+@@ -62,6 +62,10 @@ static struct rockchip_pll_rate_table rk3568_pll_rates[] = {
+ 	RK3036_PLL_RATE(1000000000, 3, 250, 2, 1, 1, 0),
+ 	RK3036_PLL_RATE(912000000, 1, 76, 2, 1, 1, 0),
+ 	RK3036_PLL_RATE(816000000, 1, 68, 2, 1, 1, 0),
++#ifndef CONFIG_XPL_BUILD
++	/* 5 x 140.24 MHz: Z96A eDP panel pixel clock (EDID NV140FHD-N43) */
++	RK3036_PLL_RATE(701200000, 1, 29, 1, 1, 0, 3635063),
++#endif
+ 	RK3036_PLL_RATE(600000000, 1, 100, 4, 1, 1, 0),
+ 	RK3036_PLL_RATE(594000000, 1, 99, 4, 1, 1, 0),
+ 	RK3036_PLL_RATE(500000000, 1, 125, 6, 1, 1, 0),
+@@ -1820,7 +1824,11 @@ static ulong rk3568_dclk_vop_set_clk(struct rk3568_clk_priv *priv,
+ 			     ((div - 1) << DCLK0_VOP_DIV_SHIFT));
+ 		rk3568_pmu_pll_set_rate(priv, HPLL, div * rate);
+ 	} else if (sel == DCLK_VOP_SEL_VPLL) {
+-		div = DIV_ROUND_UP(RK3568_VOP_PLL_LIMIT_FREQ, rate);
++		if (priv->vpll_hz)
++			div = DIV_ROUND_UP(priv->vpll_hz, rate);
++		else
++			div = DIV_ROUND_UP(RK3568_VOP_PLL_LIMIT_FREQ, rate);
++
+ 		rk_clrsetreg(&cru->clksel_con[conid],
+ 			     DCLK0_VOP_DIV_MASK | DCLK0_VOP_SEL_MASK,
+ 			     (DCLK_VOP_SEL_VPLL << DCLK0_VOP_SEL_SHIFT) |
+diff --git a/drivers/phy/rockchip/Kconfig b/drivers/phy/rockchip/Kconfig
+index 80128335d5..fea3ca9e08 100644
+--- a/drivers/phy/rockchip/Kconfig
++++ b/drivers/phy/rockchip/Kconfig
+@@ -33,6 +33,13 @@ config PHY_ROCKCHIP_NANENG_COMBOPHY
+ 	help
+ 	  Enable this to support the Rockchip NANENG combo PHY.
+ 
++config PHY_ROCKCHIP_NANENG_EDP
++	bool "Support Rockchip NANENG eDP PHY Driver"
++	depends on ARCH_ROCKCHIP
++	select PHY
++	help
++	  Enable this to support the Rockchip NANENG eDP PHY used on RK3568.
++
+ config PHY_ROCKCHIP_PCIE
+ 	bool "Rockchip PCIe PHY Driver"
+ 	depends on ARCH_ROCKCHIP
+diff --git a/drivers/phy/rockchip/Makefile b/drivers/phy/rockchip/Makefile
+index 0420017425..bd9993aefe 100644
+--- a/drivers/phy/rockchip/Makefile
++++ b/drivers/phy/rockchip/Makefile
+@@ -6,6 +6,7 @@
+ obj-$(CONFIG_PHY_ROCKCHIP_INNO_HDMI)	+= phy-rockchip-inno-hdmi.o
+ obj-$(CONFIG_PHY_ROCKCHIP_INNO_USB2)	+= phy-rockchip-inno-usb2.o
+ obj-$(CONFIG_PHY_ROCKCHIP_NANENG_COMBOPHY) += phy-rockchip-naneng-combphy.o
++obj-$(CONFIG_PHY_ROCKCHIP_NANENG_EDP) += phy-rockchip-naneng-edp.o
+ obj-$(CONFIG_PHY_ROCKCHIP_PCIE)		+= phy-rockchip-pcie.o
+ obj-$(CONFIG_PHY_ROCKCHIP_SNPS_PCIE3)	+= phy-rockchip-snps-pcie3.o
+ obj-$(CONFIG_PHY_ROCKCHIP_TYPEC)	+= phy-rockchip-typec.o
+diff --git a/drivers/phy/rockchip/phy-rockchip-naneng-edp.c b/drivers/phy/rockchip/phy-rockchip-naneng-edp.c
+new file mode 100644
+index 0000000000..1847b7a5b9
+--- /dev/null
++++ b/drivers/phy/rockchip/phy-rockchip-naneng-edp.c
+@@ -0,0 +1,460 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2020 Rockchip Electronics Co. Ltd.
++ *
++ * Author: Wyon Bi <bivvy.bi@rock-chips.com>
++ */
++
++#include <dm.h>
++#include <dm/device.h>
++#include <dm/device-internal.h>
++#include <dm/device_compat.h>
++#include <generic-phy.h>
++#include <phy-dp.h>
++#include <syscon.h>
++#include <regmap.h>
++#include <asm/io.h>
++#include <linux/bitfield.h>
++#include <linux/delay.h>
++#include <linux/iopoll.h>
++
++#define EDP_PHY_GRF_CON0		0x0000
++#define EDP_PHY_TX_IDLE			GENMASK(11, 8)
++#define EDP_PHY_TX_PD			GENMASK(7, 4)
++#define EDP_PHY_IDDQ_EN			BIT(1)
++#define EDP_PHY_PD_PLL			BIT(0)
++#define EDP_PHY_GRF_CON1		0x0004
++#define EDP_PHY_PLL_DIV			GENMASK(14, 0)
++#define EDP_PHY_GRF_CON2		0x0008
++#define EDP_PHY_TX_RTERM		GENMASK(10, 8)
++#define EDP_PHY_RATE			GENMASK(5, 4)
++#define EDP_PHY_REF_DIV			GENMASK(3, 0)
++#define EDP_PHY_GRF_CON3		0x000c
++#define EDP_PHY_TX3_EMP			GENMASK(15, 12)
++#define EDP_PHY_TX2_EMP			GENMASK(11, 8)
++#define EDP_PHY_TX1_EMP			GENMASK(7, 4)
++#define EDP_PHY_TX0_EMP			GENMASK(3, 0)
++#define EDP_PHY_GRF_CON4		0x0010
++#define EDP_PHY_TX3_AMP			GENMASK(14, 12)
++#define EDP_PHY_TX2_AMP			GENMASK(10, 8)
++#define EDP_PHY_TX1_AMP			GENMASK(6, 4)
++#define EDP_PHY_TX0_AMP			GENMASK(2, 0)
++#define EDP_PHY_GRF_CON5		0x0014
++#define EDP_PHY_TX_MODE			GENMASK(9, 8)
++#define EDP_PHY_TX3_AMP_SCALE		GENMASK(7, 6)
++#define EDP_PHY_TX2_AMP_SCALE		GENMASK(5, 4)
++#define EDP_PHY_TX1_AMP_SCALE		GENMASK(3, 2)
++#define EDP_PHY_TX0_AMP_SCALE		GENMASK(1, 0)
++#define EDP_PHY_GRF_CON6		0x0018
++#define EDP_PHY_SSC_DEPTH		GENMASK(15, 12)
++#define EDP_PHY_SSC_EN			BIT(11)
++#define EDP_PHY_SSC_CNT			GENMASK(9, 0)
++#define EDP_PHY_GRF_CON7		0x001c
++#define EDP_PHY_GRF_CON8		0x0020
++#define EDP_PHY_PLL_CTL_H		GENMASK(15, 0)
++#define EDP_PHY_GRF_CON9		0x0024
++#define EDP_PHY_TX_CTL			GENMASK(15, 0)
++#define EDP_PHY_GRF_CON10		0x0028
++#define EDP_PHY_AUX_RCV_PD_SEL		BIT(5)
++#define EDP_PHY_AUX_DRV_PD_SEL		BIT(4)
++#define EDP_PHY_AUX_IDLE		BIT(2)
++#define EDP_PHY_AUX_RCV_PD		BIT(1)
++#define EDP_PHY_AUX_DRV_PD		BIT(0)
++#define EDP_PHY_GRF_CON11		0x002c
++#define EDP_PHY_AUX_RCV_VCM		GENMASK(14, 12)
++#define EDP_PHY_AUX_MODE		GENMASK(11, 10)
++#define EDP_PHY_AUX_AMP_SCALE		GENMASK(9, 8)
++#define EDP_PHY_AUX_AMP			GENMASK(6, 4)
++#define EDP_PHY_AUX_RTERM		GENMASK(2, 0)
++#define EDP_PHY_GRF_STATUS0		0x0030
++#define PLL_RDY				BIT(0)
++#define EDP_PHY_GRF_STATUS1		0x0034
++
++struct rockchip_edp_phy {
++	struct regmap *grf;
++	struct udevice *dev;
++	u8 lanes;
++};
++
++static inline int rockchip_grf_write(struct regmap *grf, u32 reg, u32 mask,
++				     u32 val)
++{
++	return regmap_write(grf, reg, (mask << 16) | (val & mask));
++}
++
++static struct {
++	int amp;
++	int amp_scale;
++	int emp;
++} vp[4][4] = {
++	{ {0x1, 0x1, 0x0}, {0x2, 0x1, 0x4}, {0x3, 0x1, 0x8}, {0x4, 0x1, 0xd} },
++	{ {0x3, 0x1, 0x0}, {0x5, 0x1, 0x7}, {0x6, 0x1, 0x6}, { -1,  -1,  -1} },
++	{ {0x5, 0x1, 0x0}, {0x7, 0x1, 0x4}, { -1,  -1,  -1}, { -1,  -1,  -1} },
++	{ {0x7, 0x1, 0x0}, { -1,  -1,  -1}, { -1,  -1,  -1}, { -1,  -1,  -1} },
++};
++
++static void rockchip_edp_phy_set_voltage(struct rockchip_edp_phy *edpphy,
++					 struct phy_configure_opts_dp *dp,
++					 u8 lane)
++{
++	u32 amp, amp_scale, emp;
++
++	amp = vp[dp->voltage[lane]][dp->pre[lane]].amp;
++	amp_scale = vp[dp->voltage[lane]][dp->pre[lane]].amp_scale;
++	emp = vp[dp->voltage[lane]][dp->pre[lane]].emp;
++
++	switch (lane) {
++	case 0:
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON3,
++				   EDP_PHY_TX0_EMP,
++				   FIELD_PREP(EDP_PHY_TX0_EMP, emp));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON4,
++				   EDP_PHY_TX0_AMP,
++				   FIELD_PREP(EDP_PHY_TX0_AMP, amp));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON5,
++				   EDP_PHY_TX0_AMP_SCALE,
++				   FIELD_PREP(EDP_PHY_TX0_AMP_SCALE, amp_scale));
++		break;
++	case 1:
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON3,
++				   EDP_PHY_TX1_EMP,
++				   FIELD_PREP(EDP_PHY_TX1_EMP, emp));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON4,
++				   EDP_PHY_TX1_AMP,
++				   FIELD_PREP(EDP_PHY_TX1_AMP, amp));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON5,
++				   EDP_PHY_TX1_AMP_SCALE,
++				   FIELD_PREP(EDP_PHY_TX1_AMP_SCALE, amp_scale));
++		break;
++	case 2:
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON3,
++				   EDP_PHY_TX2_EMP,
++				   FIELD_PREP(EDP_PHY_TX2_EMP, emp));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON4,
++				   EDP_PHY_TX2_AMP,
++				   FIELD_PREP(EDP_PHY_TX2_AMP, amp));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON5,
++				   EDP_PHY_TX2_AMP_SCALE,
++				   FIELD_PREP(EDP_PHY_TX2_AMP_SCALE, amp_scale));
++		break;
++	case 3:
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON3,
++				   EDP_PHY_TX3_EMP,
++				   FIELD_PREP(EDP_PHY_TX3_EMP, emp));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON4,
++				   EDP_PHY_TX3_AMP,
++				   FIELD_PREP(EDP_PHY_TX3_AMP, amp));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON5,
++				   EDP_PHY_TX3_AMP_SCALE,
++				   FIELD_PREP(EDP_PHY_TX3_AMP_SCALE, amp_scale));
++		break;
++	}
++}
++
++static int rockchip_edp_phy_set_voltages(struct rockchip_edp_phy *edpphy,
++					 struct phy_configure_opts_dp *dp)
++{
++
++	u8 lane;
++
++	for (lane = 0; lane < edpphy->lanes; lane++)
++		rockchip_edp_phy_set_voltage(edpphy, dp, lane);
++
++	return 0;
++}
++
++static int rockchip_edp_phy_set_rate(struct rockchip_edp_phy *edpphy,
++				     struct phy_configure_opts_dp *dp)
++{
++	u32 value;
++	int ret;
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0,
++			   EDP_PHY_TX_IDLE | EDP_PHY_TX_PD,
++			   FIELD_PREP(EDP_PHY_TX_IDLE, 0xf) |
++			   FIELD_PREP(EDP_PHY_TX_PD, 0xf));
++	udelay(100);
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON5, EDP_PHY_TX_MODE,
++			   FIELD_PREP(EDP_PHY_TX_MODE, 0x3));
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_PD_PLL,
++			   FIELD_PREP(EDP_PHY_PD_PLL, 0x1));
++
++	switch (dp->link_rate) {
++	case 1620:
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON1,
++				   EDP_PHY_PLL_DIV,
++				   FIELD_PREP(EDP_PHY_PLL_DIV, 0x4380));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON2,
++				   EDP_PHY_TX_RTERM | EDP_PHY_RATE | EDP_PHY_REF_DIV,
++				   FIELD_PREP(EDP_PHY_TX_RTERM, 0x1) |
++				   FIELD_PREP(EDP_PHY_RATE, 0x1) |
++				   FIELD_PREP(EDP_PHY_REF_DIV, 0x0));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON8,
++				   EDP_PHY_PLL_CTL_H,
++				   FIELD_PREP(EDP_PHY_PLL_CTL_H, 0x0800));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON9,
++				   EDP_PHY_TX_CTL,
++				   FIELD_PREP(EDP_PHY_TX_CTL, 0x0000));
++		break;
++	case 2700:
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON1,
++				   EDP_PHY_PLL_DIV,
++				   FIELD_PREP(EDP_PHY_PLL_DIV, 0x3840));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON2,
++				   EDP_PHY_TX_RTERM | EDP_PHY_RATE | EDP_PHY_REF_DIV,
++				   FIELD_PREP(EDP_PHY_TX_RTERM, 0x1) |
++				   FIELD_PREP(EDP_PHY_RATE, 0x0) |
++				   FIELD_PREP(EDP_PHY_REF_DIV, 0x0));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON8,
++				   EDP_PHY_PLL_CTL_H,
++				   FIELD_PREP(EDP_PHY_PLL_CTL_H, 0x0800));
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON9,
++				   EDP_PHY_TX_CTL,
++				   FIELD_PREP(EDP_PHY_TX_CTL, 0x0000));
++		break;
++	}
++
++	if (dp->ssc)
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON6,
++				   EDP_PHY_SSC_DEPTH | EDP_PHY_SSC_EN | EDP_PHY_SSC_CNT,
++				   FIELD_PREP(EDP_PHY_SSC_DEPTH, 0x9) |
++				   FIELD_PREP(EDP_PHY_SSC_EN, 0x1) |
++				   FIELD_PREP(EDP_PHY_SSC_CNT, 0x17d));
++	else
++		rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON6,
++				   EDP_PHY_SSC_EN,
++				   FIELD_PREP(EDP_PHY_SSC_EN, 0x0));
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_PD_PLL,
++			   FIELD_PREP(EDP_PHY_PD_PLL, 0));
++	ret = regmap_read_poll_timeout(edpphy->grf, EDP_PHY_GRF_STATUS0,
++				       value, value & PLL_RDY, 100, 1000);
++	if (ret) {
++		dev_err(edpphy->dev, "pll is not ready: %d\n", ret);
++		return ret;
++	}
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON5, EDP_PHY_TX_MODE,
++			   FIELD_PREP(EDP_PHY_TX_MODE, 0x0));
++
++	return 0;
++}
++
++static int rockchip_edp_phy_set_lanes(struct rockchip_edp_phy *edpphy,
++				      struct phy_configure_opts_dp *dp)
++{
++	edpphy->lanes = dp->lanes;
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_TX_PD,
++			   FIELD_PREP(EDP_PHY_TX_PD,
++				      ~GENMASK(dp->lanes - 1, 0)));
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_TX_IDLE,
++			   FIELD_PREP(EDP_PHY_TX_IDLE,
++				      ~GENMASK(dp->lanes - 1, 0)));
++
++	return 0;
++}
++
++static int rockchip_edp_phy_verify_config(struct rockchip_edp_phy *edpphy,
++					  struct phy_configure_opts_dp *dp)
++{
++	int i;
++
++	/* If changing link rate was required, verify it's supported. */
++	if (dp->set_rate) {
++		switch (dp->link_rate) {
++		case 1620:
++		case 2700:
++			/* valid bit rate */
++			break;
++		default:
++			return -EINVAL;
++		}
++	}
++
++	if (dp->set_lanes) {
++		/* Verify lane count. */
++		switch (dp->lanes) {
++		case 1:
++		case 2:
++		case 4:
++			/* valid lane count. */
++			break;
++		default:
++			return -EINVAL;
++		}
++	}
++
++	/*
++	 * If changing voltages is required, check swing and pre-emphasis
++	 * levels, per-lane.
++	 */
++	if (dp->set_voltages) {
++		/* Lane count verified previously. */
++		for (i = 0; i < edpphy->lanes; i++) {
++			if (dp->voltage[i] > 3 || dp->pre[i] > 3)
++				return -EINVAL;
++
++			/*
++			 * Sum of voltage swing and pre-emphasis levels cannot
++			 * exceed 3.
++			 */
++			if (dp->voltage[i] + dp->pre[i] > 3)
++				return -EINVAL;
++		}
++	}
++
++	return 0;
++}
++
++static int rockchip_edp_phy_configure(struct phy *phy, void *params)
++{
++	struct rockchip_edp_phy *edpphy = dev_get_priv(phy->dev);
++	struct phy_configure_opts_dp *dp = params;
++	int ret;
++
++	ret = rockchip_edp_phy_verify_config(edpphy, dp);
++	if (ret) {
++		dev_err(edpphy->dev, "invalid params for phy configure\n");
++		return ret;
++	}
++
++	if (dp->set_rate) {
++		ret = rockchip_edp_phy_set_rate(edpphy, dp);
++		if (ret) {
++			dev_err(edpphy->dev,
++				"rockchip_edp_phy_set_rate failed\n");
++			return ret;
++		}
++	}
++
++	if (dp->set_lanes) {
++		ret = rockchip_edp_phy_set_lanes(edpphy, dp);
++		if (ret) {
++			dev_err(edpphy->dev,
++				"rockchip_edp_phy_set_lanes failed\n");
++			return ret;
++		}
++	}
++
++	if (dp->set_voltages) {
++		ret = rockchip_edp_phy_set_voltages(edpphy, dp);
++		if (ret) {
++			dev_err(edpphy->dev,
++				"rockchip_edp_phy_set_voltages failed\n");
++			return ret;
++		}
++	}
++
++	return 0;
++}
++
++static int rockchip_edp_phy_power_on(struct phy *phy)
++{
++	struct rockchip_edp_phy *edpphy = dev_get_priv(phy->dev);
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON10,
++			   EDP_PHY_AUX_RCV_PD | EDP_PHY_AUX_DRV_PD | EDP_PHY_AUX_IDLE,
++			   FIELD_PREP(EDP_PHY_AUX_RCV_PD, 0x1) |
++			   FIELD_PREP(EDP_PHY_AUX_DRV_PD, 0x1) |
++			   FIELD_PREP(EDP_PHY_AUX_IDLE, 0x1));
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0,
++			   EDP_PHY_TX_IDLE | EDP_PHY_TX_PD | EDP_PHY_PD_PLL,
++			   FIELD_PREP(EDP_PHY_TX_IDLE, 0xf) |
++			   FIELD_PREP(EDP_PHY_TX_PD, 0xf) |
++			   FIELD_PREP(EDP_PHY_PD_PLL, 0x1));
++	udelay(100);
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON11,
++			   EDP_PHY_AUX_RCV_VCM | EDP_PHY_AUX_MODE |
++			   EDP_PHY_AUX_AMP_SCALE | EDP_PHY_AUX_AMP |
++			   EDP_PHY_AUX_RTERM,
++			   FIELD_PREP(EDP_PHY_AUX_RCV_VCM, 0x4) |
++			   FIELD_PREP(EDP_PHY_AUX_MODE, 0x1) |
++			   FIELD_PREP(EDP_PHY_AUX_AMP_SCALE, 0x1) |
++			   FIELD_PREP(EDP_PHY_AUX_AMP, 0x3) |
++			   FIELD_PREP(EDP_PHY_AUX_RTERM, 0x1));
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON10,
++			   EDP_PHY_AUX_RCV_PD | EDP_PHY_AUX_DRV_PD,
++			   FIELD_PREP(EDP_PHY_AUX_RCV_PD, 0x0) |
++			   FIELD_PREP(EDP_PHY_AUX_DRV_PD, 0x0));
++	udelay(100);
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON10,
++			   EDP_PHY_AUX_IDLE,
++			   FIELD_PREP(EDP_PHY_AUX_IDLE, 0x0));
++	mdelay(20);
++
++	return 0;
++}
++
++static int rockchip_edp_phy_power_off(struct phy *phy)
++{
++	struct rockchip_edp_phy *edpphy = dev_get_priv(phy->dev);
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0,
++			   EDP_PHY_TX_IDLE | EDP_PHY_TX_PD,
++			   FIELD_PREP(EDP_PHY_TX_IDLE, 0xf) |
++			   FIELD_PREP(EDP_PHY_TX_PD, 0xf));
++	udelay(100);
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON5, EDP_PHY_TX_MODE,
++			   FIELD_PREP(EDP_PHY_TX_MODE, 0x3));
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_PD_PLL,
++			   FIELD_PREP(EDP_PHY_PD_PLL, 0x1));
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON10,
++			   EDP_PHY_AUX_RCV_PD | EDP_PHY_AUX_DRV_PD | EDP_PHY_AUX_IDLE,
++			   FIELD_PREP(EDP_PHY_AUX_RCV_PD, 0x1) |
++			   FIELD_PREP(EDP_PHY_AUX_DRV_PD, 0x1) |
++			   FIELD_PREP(EDP_PHY_AUX_IDLE, 0x1));
++
++	return 0;
++}
++
++static struct phy_ops rockchip_edp_phy_ops = {
++	.power_on = rockchip_edp_phy_power_on,
++	.power_off = rockchip_edp_phy_power_off,
++	.configure = rockchip_edp_phy_configure,
++};
++
++static int rockchip_edp_phy_probe(struct udevice *dev)
++{
++	struct rockchip_edp_phy *edpphy = dev_get_priv(dev);
++	struct udevice *parent = dev_get_parent(dev);
++	int ret;
++
++	/*
++	 * The PHY registers live in the parent eDP-PHY-GRF syscon.  DM may
++	 * have bound the parent but not probed it yet, so make sure its
++	 * regmap exists before asking syscon_get_regmap() for it.
++	 */
++	if (!device_active(parent)) {
++		ret = device_probe(parent);
++		if (ret)
++			return ret;
++	}
++
++	edpphy->grf = syscon_get_regmap(parent);
++	if (IS_ERR(edpphy->grf))
++		return PTR_ERR(edpphy->grf);
++	if (!edpphy->grf)
++		return -ENOENT;
++
++	edpphy->dev = dev;
++
++	return 0;
++}
++
++static const struct udevice_id rockchip_edp_phy_ids[] = {
++	{ .compatible = "rockchip,rk3568-edp-phy", },
++	{}
++};
++
++U_BOOT_DRIVER(rockchip_edp_phy) = {
++	.name		= "rockchip_edp_phy",
++	.id		= UCLASS_PHY,
++	.ops		= &rockchip_edp_phy_ops,
++	.of_match	= rockchip_edp_phy_ids,
++	.probe		= rockchip_edp_phy_probe,
++	.priv_auto	= sizeof(struct rockchip_edp_phy),
++};
+diff --git a/drivers/pwm/rk_pwm.c b/drivers/pwm/rk_pwm.c
+index 0a64eb01dc..d904e28c41 100644
+--- a/drivers/pwm/rk_pwm.c
++++ b/drivers/pwm/rk_pwm.c
+@@ -14,11 +14,19 @@
+ #include <asm/global_data.h>
+ #include <asm/io.h>
+ #include <asm/arch-rockchip/pwm.h>
++#include <asm/arch-rockchip/clock.h>
++#include <asm/arch-rockchip/cru_rk3568.h>
++#include <asm/arch-rockchip/hardware.h>
++#include <dm/pinctrl.h>
+ #include <linux/bitops.h>
++#include <linux/err.h>
+ #include <power/regulator.h>
+ 
+ DECLARE_GLOBAL_DATA_PTR;
+ 
++/* Temporary Z96A RAM-test diagnostics. */
++extern void z96a_marker(const char *tag);
++
+ struct rockchip_pwm_data {
+ 	struct rockchip_pwm_regs regs;
+ 	unsigned int prescaler;
+@@ -117,6 +125,15 @@ static int rk_pwm_set_enable(struct udevice *dev, uint channel, bool enable)
+ 		ctrl &= ~priv->data->enable_conf;
+ 
+ 	writel(ctrl, priv->base + regs->ctrl);
++	if (priv->base == 0xfe6f0010UL && enable) {
++		char tag[100];
++
++		snprintf(tag, sizeof(tag), "pwm_p_%x_d_%x_c_%x",
++			 readl(priv->base + regs->period),
++			 readl(priv->base + regs->duty),
++			 readl(priv->base + regs->ctrl));
++		z96a_marker(tag);
++	}
+ 
+ 	return 0;
+ }
+@@ -136,6 +153,27 @@ static int rk_pwm_probe(struct udevice *dev)
+ 	struct clk clk;
+ 	int ret = 0;
+ 
++	if (priv->base == 0xfe6f0010UL) {
++		struct rk3568_cru *cru = rockchip_get_cru();
++		char tag[80];
++
++		if (IS_ERR_OR_NULL(cru))
++			return -ENODEV;
++		snprintf(tag, sizeof(tag), "pwm_gate_before_%x",
++			 readl(&cru->clkgate_con[31]));
++		z96a_marker(tag);
++		/* PWM9 uses the PWM2 functional and APB clocks. */
++		rk_clrreg(&cru->clkgate_con[31], BIT(13) | BIT(14));
++		snprintf(tag, sizeof(tag), "pwm_gate_after_%x",
++			 readl(&cru->clkgate_con[31]));
++		z96a_marker(tag);
++		ret = pinctrl_select_state(dev, "default");
++		snprintf(tag, sizeof(tag), "pwm_pinctrl_%x", (unsigned int)ret);
++		z96a_marker(tag);
++		if (ret)
++			return ret;
++	}
++
+ 	ret = clk_get_by_index(dev, 0, &clk);
+ 	if (ret < 0) {
+ 		debug("%s get clock fail!\n", __func__);
+@@ -143,6 +181,14 @@ static int rk_pwm_probe(struct udevice *dev)
+ 	}
+ 
+ 	priv->freq = clk_get_rate(&clk);
++	if (IS_ERR_VALUE(priv->freq) || !priv->freq)
++		return -EINVAL;
++	if (priv->base == 0xfe6f0010UL) {
++		char tag[48];
++
++		snprintf(tag, sizeof(tag), "pwm_rate_%lx", priv->freq);
++		z96a_marker(tag);
++	}
+ 	priv->data = (struct rockchip_pwm_data *)dev_get_driver_data(dev);
+ 
+ 	if (priv->data->supports_polarity)
+diff --git a/drivers/video/pwm_backlight.c b/drivers/video/pwm_backlight.c
+index 1470eaf4ca..f539af2a61 100644
+--- a/drivers/video/pwm_backlight.c
++++ b/drivers/video/pwm_backlight.c
+@@ -16,6 +16,8 @@
+ #include <linux/math64.h>
+ #include <power/regulator.h>
+ 
++extern void z96a_marker(const char *tag);
++
+ /**
+  * Private information for the PWM backlight
+  *
+@@ -36,6 +38,17 @@
+  * @max_level: Maximum level of the backlight (full on)
+  * @enabled: true if backlight is enabled
+  */
++/* Temporary RAM-test diagnostics, defined in z96a_rk3568/board.c */
++extern int z96a_diag_bl_stage;
++extern int z96a_diag_bl_ret;
++
++#define BL_DIAG(stage, err) do { \
++	if ((stage) >= z96a_diag_bl_stage) { \
++		z96a_diag_bl_stage = (stage); \
++		z96a_diag_bl_ret = (err); \
++	} \
++} while (0)
++
+ struct pwm_backlight_priv {
+ 	struct udevice *reg;
+ 	struct gpio_desc enable;
+@@ -110,7 +123,22 @@ static int enable_sequence(struct udevice *dev, int seq)
+ 		break;
+ 	case 1:
+ 		mdelay(10);
+-		dm_gpio_set_value(&priv->enable, 1);
++		if (dm_gpio_is_valid(&priv->enable)) {
++			char tag[48];
++
++			ret = dm_gpio_set_value(&priv->enable, 1);
++			snprintf(tag, sizeof(tag), "bl_gpio_set_%x",
++				 (unsigned int)ret);
++			z96a_marker(tag);
++			if (ret)
++				return ret;
++			ret = dm_gpio_get_value(&priv->enable);
++			snprintf(tag, sizeof(tag), "bl_gpio_read_%x",
++				 (unsigned int)ret);
++			z96a_marker(tag);
++			if (ret < 0)
++				return ret;
++		}
+ 		break;
+ 	}
+ 
+@@ -198,31 +226,43 @@ static int pwm_backlight_of_to_plat(struct udevice *dev)
+ 	const u32 *cell;
+ 
+ 	log_debug("start\n");
++	BL_DIAG(1, 0);
+ 	ret = uclass_get_device_by_phandle(UCLASS_REGULATOR, dev,
+ 					   "power-supply", &priv->reg);
+ 	if (ret)
+ 		log_debug("Cannot get power supply: ret=%d\n", ret);
++	BL_DIAG(2, 0);
+ 	ret = gpio_request_by_name(dev, "enable-gpios", 0, &priv->enable,
+ 				   GPIOD_IS_OUT);
+ 	if (ret) {
+ 		log_debug("Warning: cannot get enable GPIO: ret=%d\n", ret);
+-		if (ret != -ENOENT)
++		if (ret != -ENOENT) {
++			BL_DIAG(3, ret);
+ 			return log_ret(ret);
++		}
+ 	}
++	BL_DIAG(3, 0);
+ 	ret = dev_read_phandle_with_args(dev, "pwms", "#pwm-cells", 0, 0,
+ 					 &args);
+ 	if (ret) {
+ 		log_debug("Cannot get PWM phandle: ret=%d\n", ret);
++		BL_DIAG(4, ret);
+ 		return log_ret(ret);
+ 	}
++	BL_DIAG(4, 0);
+ 
+ 	ret = uclass_get_device_by_ofnode(UCLASS_PWM, args.node, &priv->pwm);
+ 	if (ret) {
+ 		log_debug("Cannot get PWM: ret=%d\n", ret);
++		BL_DIAG(5, ret);
+ 		return log_ret(ret);
+ 	}
+-	if (args.args_count < 1)
++	BL_DIAG(5, 0);
++	if (args.args_count < 1) {
++		BL_DIAG(6, -EINVAL);
+ 		return log_msg_ret("Not enough arguments to pwm\n", -EINVAL);
++	}
++	BL_DIAG(6, 0);
+ 	priv->channel = args.args[0];
+ 	if (args.args_count > 1)
+ 		priv->period_ns = args.args[1];
+@@ -234,12 +274,16 @@ static int pwm_backlight_of_to_plat(struct udevice *dev)
+ 	count = len / sizeof(u32);
+ 	if (cell && count > index) {
+ 		priv->levels = malloc(len);
+-		if (!priv->levels)
++		if (!priv->levels) {
++			BL_DIAG(7, -ENOMEM);
+ 			return log_ret(-ENOMEM);
++		}
+ 		ret = dev_read_u32_array(dev, "brightness-levels", priv->levels,
+ 					 count);
+-		if (ret)
++		if (ret) {
++			BL_DIAG(7, ret);
+ 			return log_msg_ret("levels", ret);
++		}
+ 		priv->num_levels = count;
+ 		priv->default_level = priv->levels[index];
+ 		priv->max_level = priv->levels[count - 1];
+@@ -248,6 +292,7 @@ static int pwm_backlight_of_to_plat(struct udevice *dev)
+ 		priv->max_level = 255;
+ 	}
+ 	priv->cur_level = priv->default_level;
++	BL_DIAG(8, 0);
+ 	log_debug("done\n");
+ 
+ 	return 0;
+diff --git a/drivers/video/rockchip/Makefile b/drivers/video/rockchip/Makefile
+index f55beceebf..2f89a979a2 100644
+--- a/drivers/video/rockchip/Makefile
++++ b/drivers/video/rockchip/Makefile
+@@ -4,10 +4,11 @@
+ # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
+ 
+ ifdef CONFIG_VIDEO_ROCKCHIP
+-obj-y += rk_vop.o
++obj-y += rk_vop.o rk_vop2.o
+ obj-$(CONFIG_ROCKCHIP_RK3288) += rk3288_vop.o
+ obj-$(CONFIG_ROCKCHIP_RK3328) += rk3328_vop.o
+ obj-$(CONFIG_ROCKCHIP_RK3399) += rk3399_vop.o
++obj-$(CONFIG_ROCKCHIP_RK3568) += rk3568_vop.o
+ obj-$(CONFIG_DISPLAY_ROCKCHIP_EDP) += rk_edp.o
+ obj-$(CONFIG_DISPLAY_ROCKCHIP_LVDS) += rk_lvds.o
+ obj-hdmi-$(CONFIG_ROCKCHIP_RK3288) += rk3288_hdmi.o
+diff --git a/drivers/video/rockchip/rk3568_vop.c b/drivers/video/rockchip/rk3568_vop.c
+new file mode 100644
+index 0000000000..78779cceb7
+--- /dev/null
++++ b/drivers/video/rockchip/rk3568_vop.c
+@@ -0,0 +1,295 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2024 - 2025 Dang Huynh <dang.huynh@mainlining.org>
++ *
++ * Based on rk3399_vop.c:
++ *   Copyright (c) 2017 Theobroma Systems Design und Consulting GmbH
++ *   Copyright (c) 2015 Google, Inc
++ *   Copyright 2014 Rockchip Inc.
++ */
++
++#include <clk.h>
++#include <display.h>
++#include <dm.h>
++#include <dm/device_compat.h>
++#include <regmap.h>
++#include <video.h>
++#include <asm/arch-rockchip/clock.h>
++#include <asm/arch-rockchip/cru_rk3568.h>
++#include <asm/arch-rockchip/hardware.h>
++#include <asm/global_data.h>
++#include <linux/bitfield.h>
++#include "rk_vop2.h"
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define M_MIPI1_INFACE_MUX (3 << 21)
++#define M_LVDS_INFACE_MUX (3 << 18)
++#define M_MIPI_INFACE_MUX (3 << 16)
++#define M_EDP_INFACE_MUX (3 << 14)
++#define M_HDMI_INFACE_MUX (3 << 10)
++#define M_RGB_INFACE_MUX (3 << 8)
++
++#define V_MIPI1_INFACE_MUX(x) (((x) & 3) << 21)
++#define V_LVDS_INFACE_MUX(x) (((x) & 3) << 18)
++#define V_MIPI_INFACE_MUX(x) (((x) & 3) << 16)
++#define V_EDP_INFACE_MUX(x) (((x) & 3) << 14)
++#define V_HDMI_INFACE_MUX(x) (((x) & 3) << 10)
++#define V_RGB_INFACE_MUX(x) (((x) & 3) << 8)
++
++#define M_MIPI_POL (0xf << 16)
++#define M_EDP_POL (0xf << 12)
++#define M_HDMI_POL (0xf << 4)
++#define M_RGB_LVDS_POL (0xf << 0)
++
++#define V_MIPI_POL(x) (((x) & 0xf) << 16)
++#define V_EDP_POL(x) (((x) & 0xf) << 12)
++#define V_HDMI_POL(x) (((x) & 0xf) << 4)
++#define V_RGB_LVDS_POL(x) (((x) & 0xf) << 0)
++
++#define M_MIPI1_OUT_EN (1 << 20)
++#define M_BT656_OUT_EN (1 << 7)
++#define M_BT1120_OUT_EN (1 << 6)
++#define M_LVDS_OUT_EN (1 << 5)
++#define M_MIPI_OUT_EN (1 << 4)
++#define M_EDP_OUT_EN (1 << 3)
++#define M_HDMI_OUT_EN (1 << 1)
++#define M_RGB_OUT_EN (1 << 0)
++
++#define M_ALL_OUT_EN (M_MIPI1_OUT_EN | M_BT656_OUT_EN | M_BT1120_OUT_EN | M_LVDS_OUT_EN | \
++			M_MIPI_OUT_EN | M_EDP_OUT_EN | M_HDMI_OUT_EN | M_RGB_OUT_EN)
++
++#define V_MIPI1_OUT_EN(x) (((x) & 1) << 20)
++#define V_BT656_OUT_EN(x) (((x) & 1) << 7)
++#define V_BT1120_OUT_EN(x) (((x) & 1) << 6)
++#define V_LVDS_OUT_EN(x) (((x) & 1) << 5)
++#define V_MIPI_OUT_EN(x) (((x) & 1) << 4)
++#define V_EDP_OUT_EN(x) (((x) & 1) << 3)
++#define V_HDMI_OUT_EN(x) (((x) & 1) << 1)
++#define V_RGB_OUT_EN(x) (((x) & 1) << 0)
++
++static void rk3568_enable_output(struct udevice *dev,
++				 enum vop_modes mode, u32 port)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct rk3568_vop_sysctrl *sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++	u32 reg = 0;
++
++	reg = readl(&sysctrl->dsp_en);
++
++	switch (mode) {
++	case VOP_MODE_EDP:
++		reg &= ~(M_EDP_INFACE_MUX | M_EDP_OUT_EN);
++		reg |= M_EDP_OUT_EN | V_EDP_INFACE_MUX(port);
++		break;
++
++	case VOP_MODE_HDMI:
++		reg |= M_HDMI_OUT_EN | V_HDMI_INFACE_MUX(port);
++		break;
++
++	case VOP_MODE_MIPI:
++		reg |= M_MIPI_OUT_EN | V_MIPI_INFACE_MUX(port);
++		break;
++
++	case VOP_MODE_LVDS:
++		reg |= M_LVDS_OUT_EN | V_LVDS_INFACE_MUX(port);
++		break;
++
++	default:
++		debug("%s: unsupported output mode %x\n", __func__, mode);
++		return;
++	}
++
++	debug("%s: vop output 0x%08x\n", __func__, reg);
++	writel(reg, &sysctrl->dsp_en);
++}
++
++static void rk3568_set_pin_polarity(struct udevice *dev,
++				    enum vop_modes mode, u32 polarity)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct rk3568_vop_sysctrl *sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++	u32 reg;
++
++	reg = readl(&sysctrl->dsp_pol);
++
++	switch (mode) {
++	case VOP_MODE_EDP:
++		reg &= ~M_EDP_POL;
++		reg |= V_EDP_POL(polarity);
++		break;
++
++	case VOP_MODE_HDMI:
++		reg |= V_HDMI_POL(polarity);
++		break;
++
++	case VOP_MODE_MIPI:
++		reg |= V_MIPI_POL(polarity);
++		break;
++
++	/* RGB and LVDS shares the same polarity */
++	case VOP_MODE_LVDS:
++		reg |= V_RGB_LVDS_POL(polarity);
++		break;
++
++	default:
++		debug("%s: unsupported output mode %x\n", __func__, mode);
++		return;
++	}
++
++	reg |= M_DSP_INFACE_REGDONE;
++	debug("%s: vop polarity 0x%08x\n", __func__, reg);
++	writel(reg, &sysctrl->dsp_pol);
++}
++
++static int rkvop2_initialize(struct udevice *dev)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct rk3568_vop_sysctrl *sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++
++	/* Enable OTP function */
++	clrsetbits_le32(&sysctrl->otp_win, M_OTP_WIN, V_OTP_WIN(1));
++
++	writel(M_GLOBAL_REGDONE, &sysctrl->reg_cfg_done);
++
++	/* Disable auto gating */
++	clrsetbits_le32(&sysctrl->autogating_ctrl, M_AUTO_GATING, V_AUTO_GATING(0));
++
++	return 0;
++}
++
++/*
++ * FIXME: Booting into Linux with a window plane enabled causes VOP IOMMU
++ * to fail.
++ *
++ * This can be removed when there's a better way to handle MMU under Linux.
++ */
++static int rk3568_vop_remove(struct udevice *dev)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++
++	debug("Removing VOP2 driver (vp=%d, layer=%d)\n", priv->vp, priv->layer);
++
++	/* Disable the plane before Linux takes over the VOP2 IOMMU. */
++	rk_vop2_disable(dev);
++
++	return 0;
++}
++
++/*
++ * The RK3568 clock driver does not expose the VO gate bits.  Ungate the
++ * VO/VOP clocks here before the first VOP register access.  This is only
++ * executed when z96a_logo explicitly probes the display, never on the USB
++ * boot path.
++ */
++static void rk3568_vop_enable_clocks(void)
++{
++	struct rk3568_cru *cru = rockchip_get_cru();
++
++	if (!cru)
++		return;
++
++	/* ACLK_VO, HCLK_VO, PCLK_VO, ACLK_VOP_PRE, ACLK_VOP,
++	 * HCLK_VOP, DCLK_VOP1 (CLKGATE_CON20).
++	 */
++	rk_clrreg(&cru->clkgate_con[20],
++		  BIT(0) | BIT(1) | BIT(2) | BIT(6) | BIT(8) | BIT(9) | BIT(11));
++}
++
++static int rk3568_vop_probe(struct udevice *dev)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	int ret;
++
++	/* Before relocation we don't need to do anything */
++	if (!(gd->flags & GD_FLG_RELOC))
++		return 0;
++
++	/*
++	 * rkvop2_initialize() touches the VOP registers, so the register
++	 * base must be resolved before it runs; rk_vop2_probe() sets it
++	 * again to the same value.
++	 */
++	priv->regs = dev_read_addr_ptr(dev);
++	if (!priv->regs)
++		return -EINVAL;
++
++	rk3568_vop_enable_clocks();
++
++	ret = rkvop2_initialize(dev);
++	if (ret)
++		return ret;
++
++	return rk_vop2_probe(dev);
++}
++
++/*
++ * RK3566 datasheet omits the VP2, even though it exist in the hardware
++ * so let's not use it.
++ */
++struct rkvop2_platdata rk3566_platdata = {
++	.delay = 20,
++	.bg_dly = {42, 40, -1},
++	/* SMART0, ESMART0 */
++	.vp_lyr = {3, 2, -1},
++	.layers = {ROCKCHIP_VOP2_CLUSTER0, ROCKCHIP_VOP2_RESERVED,
++		   ROCKCHIP_VOP2_ESMART0, ROCKCHIP_VOP2_SMART0,
++		   ROCKCHIP_VOP2_RESERVED, ROCKCHIP_VOP2_RESERVED,
++		   ROCKCHIP_VOP2_RESERVED, ROCKCHIP_VOP2_RESERVED},
++};
++
++struct rkvop2_platdata rk3568_platdata = {
++	.delay = 20,
++	.bg_dly = {42, 40, 40},
++	/*
++	 * RK3568 hardware layer IDs: Cluster0/1=0/1, Esmart0/1=2/3,
++	 * Smart0/1=4/5, Cluster2/3=6/7, Esmart2/3=8/9.
++	 * The U-Boot VOP2 driver only implements ESMART planes, so use
++	 * ESMART0 (layer 2) for VP1/eDP instead of the SMART1 plane used
++	 * by Linux.  VP0/VP2 are unused on this board.
++	 */
++	.vp_lyr = {3, 2, 3},
++	.layers = {0, 1, 2, 3, 4, 5, 6, 7},
++};
++
++struct rkvop2_driverdata rk3566_driverdata = {
++	.features = VOP_FEATURE_OUTPUT_10BIT,
++	.set_pin_polarity = rk3568_set_pin_polarity,
++	.enable_output = rk3568_enable_output,
++	.platdata = &rk3566_platdata,
++};
++
++struct rkvop2_driverdata rk3568_driverdata = {
++	.features = VOP_FEATURE_OUTPUT_10BIT,
++	.set_pin_polarity = rk3568_set_pin_polarity,
++	.enable_output = rk3568_enable_output,
++	.platdata = &rk3568_platdata,
++};
++
++static const struct udevice_id rk3568_vop_ids[] = {
++	{ .compatible = "rockchip,rk3566-vop",
++	  .data = (ulong)&rk3566_driverdata },
++	{ .compatible = "rockchip,rk3568-vop",
++	  .data = (ulong)&rk3568_driverdata },
++	{ }
++};
++
++static const struct video_ops rk3568_vop_ops = {
++};
++
++U_BOOT_DRIVER(rk3568_vop) = {
++	.name	= "rk3568_vop",
++	.id	= UCLASS_VIDEO,
++	.of_match = rk3568_vop_ids,
++	.ops	= &rk3568_vop_ops,
++	.bind	= rk_vop2_bind,
++	.probe	= rk3568_vop_probe,
++	.remove = rk3568_vop_remove,
++	.priv_auto = sizeof(struct rk_vop2_priv),
++	/*
++	 * No DM_FLAG_PRE_RELOC: the Z96A logo path binds this driver only
++	 * after the USB scan has returned, so USB boots never probe VOP2.
++	 * DM_FLAG_OS_PREPARE makes the plane cleanup run before Linux.
++	 */
++	.flags = DM_FLAG_OS_PREPARE,
++};
+diff --git a/drivers/video/rockchip/rk_edp.c b/drivers/video/rockchip/rk_edp.c
+index 0ba68dbce3..e6a44d75d4 100644
+--- a/drivers/video/rockchip/rk_edp.c
++++ b/drivers/video/rockchip/rk_edp.c
+@@ -8,24 +8,77 @@
+ #include <display.h>
+ #include <dm.h>
+ #include <dm/device_compat.h>
++#include <dm/ofnode.h>
+ #include <edid.h>
++#include <generic-phy.h>
+ #include <log.h>
+ #include <malloc.h>
+ #include <panel.h>
++#include <phy-dp.h>
+ #include <regmap.h>
+ #include <reset.h>
+ #include <syscon.h>
+ #include <asm/gpio.h>
+ #include <asm/arch-rockchip/clock.h>
++#include <asm/arch-rockchip/cru_rk3568.h>
+ #include <asm/arch-rockchip/hardware.h>
+ #include <asm/arch-rockchip/edp_rk3288.h>
+ #include <asm/arch-rockchip/grf_rk3288.h>
+ #include <asm/arch-rockchip/grf_rk3399.h>
++#include <linux/bitops.h>
++#include <linux/delay.h>
+ 
+ #define MAX_CR_LOOP 5
++#define MAX_CR_TOTAL_LOOP 32
+ #define MAX_EQ_LOOP 5
+ #define DP_LINK_STATUS_SIZE 6
+ 
++/*
++ * Vendor-parity definitions from the 2017.09 vendor U-Boot analogix_dp.h.
++ * The RK3288-era header on which this driver is based lacks the
++ * master/slave video function bits, the audio/video mode bits of
++ * SOC_GENERAL_CTL, and the encodings of the video timing configuration
++ * registers (0x48-0x88) that the factory firmware programs on this board.
++ */
++#define MASTER_VID_FUNC_EN_N	(0x1 << 7)
++#define SLAVE_VID_FUNC_EN_N	(0x1 << 5)
++#define AUDIO_MODE_SPDIF_MODE	(0x1 << 8)
++#define VIDEO_MODE_SLAVE_MODE	(0x1 << 0)
++
++#define TOTAL_LINE_CFG_L(x)	(((x) & 0xff) << 0)
++#define TOTAL_LINE_CFG_H(x)	(((x) & 0xf) << 0)
++#define ACTIVE_LINE_CFG_L(x)	(((x) & 0xff) << 0)
++#define ACTIVE_LINE_CFG_H(x)	(((x) & 0xf) << 0)
++#define V_F_PORCH_CFG(x)	(((x) & 0xff) << 0)
++#define V_SYNC_WIDTH_CFG(x)	(((x) & 0xff) << 0)
++#define V_B_PORCH_CFG(x)	(((x) & 0xff) << 0)
++#define TOTAL_PIXEL_CFG_L(x)	(((x) & 0xff) << 0)
++#define TOTAL_PIXEL_CFG_H(x)	(((x) & 0x3f) << 0)
++#define ACTIVE_PIXEL_CFG_L(x)	(((x) & 0xff) << 0)
++#define ACTIVE_PIXEL_CFG_H(x)	(((x) & 0x3f) << 0)
++#define H_F_PORCH_CFG_L(x)	(((x) & 0xff) << 0)
++#define H_F_PORCH_CFG_H(x)	(((x) & 0xf) << 0)
++#define H_SYNC_CFG_L(x)		(((x) & 0xff) << 0)
++#define H_SYNC_CFG_H(x)		(((x) & 0xf) << 0)
++#define H_B_PORCH_CFG_L(x)	(((x) & 0xff) << 0)
++#define H_B_PORCH_CFG_H(x)	(((x) & 0xf) << 0)
++
++/* Temporary RAM-test diagnostics, defined in z96a_rk3568/board.c */
++extern int z96a_diag_edp_stage;
++extern int z96a_diag_edp_ret;
++extern int z96a_diag_edp_fallback;
++extern int z96a_defer_backlight;
++extern void z96a_marker(const char *tag);
++extern void z96a_vop_output_on(void);
++extern void z96a_vop_plane_on(void);
++
++#define EDP_DIAG(stage, err) do { \
++	if ((stage) >= z96a_diag_edp_stage) { \
++		z96a_diag_edp_stage = (stage); \
++		z96a_diag_edp_ret = (err); \
++	} \
++} while (0)
++
+ static const char * const voltage_names[] = {
+ 	"0.4V", "0.6V", "0.8V", "1.2V"
+ };
+@@ -43,7 +96,8 @@ static const char * const pre_emph_names[] = {
+ 
+ enum rockchip_dp_types {
+ 	RK3288_DP = 0,
+-	RK3399_EDP
++	RK3399_EDP,
++	RK3568_EDP
+ };
+ 
+ struct rockchip_dp_data {
+@@ -60,8 +114,13 @@ struct rk_edp_priv {
+ 	struct udevice *panel;
+ 	struct link_train link_train;
+ 	u8 train_set[4];
++	struct phy phy;
++	enum rockchip_dp_types chip_type;
++	u32 bpc;
+ };
+ 
++static void rockchip_edp_force_hpd(struct rk_edp_priv *edp);
++
+ static void rk_edp_init_refclk(struct rk3288_edp *regs, enum rockchip_dp_types chip_type)
+ {
+ 	writel(SEL_24M, &regs->analog_ctl_2);
+@@ -173,6 +232,249 @@ static void rk_edp_init_aux(struct rk3288_edp *regs)
+ 	clrbits_le32(&regs->func_en_2, AUX_FUNC_EN_N);
+ }
+ 
++/*
++ * RK3568 uses an external Naneng eDP PHY.  The Analogix controller still
++ * has the standard analog register block, but its initialisation values
++ * differ from RK3288/RK3399.  Follow the Linux analogix_dp_reg.c sequence
++ * instead of the old RK3288 internal-PHY values.
++ */
++#define RK3568_ANALOG_CTL_1		0x370
++#define RK3568_ANALOG_CTL_3		0x378
++#define RK3568_PLL_FILTER_CTL_1		0x37c
++#define RK3568_TX_AMP_TUNING_CTL	0x380
++#define RK3568_AUX_HW_RETRY_CTL		0x390
++#define RK3568_TX_DVDD_BIT_1_0625V	(0x4 << 0)
++
++static void rk3568_edp_ungate_clocks(void)
++{
++	struct rk3568_cru *cru = rockchip_get_cru();
++	struct rk3568_pmucru *pmucru = rockchip_get_pmucru();
++
++	if (cru) {
++		/* CLK_EDP_200M source: gpll_200m (200 MHz). */
++		rk_clrsetreg(&cru->clksel_con[38], GENMASK(9, 8), 0);
++		/* PCLK_EDP_CTRL, CLK_EDP_200M, PCLK_EDPPHY_GRF. */
++		rk_clrreg(&cru->clkgate_con[21], BIT(8) | BIT(9));
++		rk_clrreg(&cru->clkgate_con[34], BIT(14));
++	}
++
++	if (pmucru)
++		/* XIN_OSC0_EDPPHY_G. */
++		rk_clrreg(&pmucru->pmu_clkgate_con[2], BIT(15));
++}
++
++static void rk3568_edp_init_analog_param(struct rk3288_edp *regs)
++{
++	writel(TX_TERMINAL_CTRL_50_OHM,
++	       (u8 *)regs + RK3568_ANALOG_CTL_1);
++	writel(SEL_24M | RK3568_TX_DVDD_BIT_1_0625V, &regs->analog_ctl_2);
++
++	writel(REF_CLK_24M, &regs->pll_reg_1);
++	writel(0x95, &regs->pll_reg_2);
++	writel(0x40, &regs->pll_reg_3);
++	writel(0x58, &regs->pll_reg_4);
++	writel(0x22, &regs->pll_reg_5);
++
++	writel(DRIVE_DVDD_BIT_1_0625V | VCO_BIT_600_MICRO,
++	       (u8 *)regs + RK3568_ANALOG_CTL_3);
++	writel(PD_RING_OSC | AUX_TERMINAL_CTRL_50_OHM |
++	       TX_CUR1_2X | TX_CUR_16_MA,
++	       (u8 *)regs + RK3568_PLL_FILTER_CTL_1);
++	writel(0, (u8 *)regs + RK3568_TX_AMP_TUNING_CTL);
++}
++
++static void rk3568_edp_init_interrupt(struct rk3288_edp *regs)
++{
++	writel(INT_POL, &regs->int_ctl);
++
++	writel(0xff, &regs->common_int_sta_1);
++	writel(0x4f, &regs->common_int_sta_2);
++	writel(0xe0, &regs->common_int_sta_3);
++	writel(0xe7, &regs->common_int_sta_4);
++	writel(0x63, &regs->dp_int_sta);
++
++	writel(0x00, &regs->common_int_mask_1);
++	writel(0x00, &regs->common_int_mask_2);
++	writel(0x00, &regs->common_int_mask_3);
++	writel(0x00, &regs->common_int_mask_4);
++	writel(0x00, &regs->int_sta_mask);
++}
++
++static void rk3568_edp_init_analog_func(struct rk3288_edp *regs)
++{
++	u32 reg;
++
++	/* POWER_ALL off: the Linux Analogix sequence for Rockchip IP. */
++	writel(0xff, &regs->dp_pd);
++	udelay(10);
++	writel(0x7f, &regs->dp_pd);
++	udelay(10);
++	writel(0x00, &regs->dp_pd);
++
++	writel(PLL_LOCK_CHG, &regs->common_int_sta_1);
++	reg = readl(&regs->dp_debug_ctl);
++	reg &= ~(F_PLL_LOCK | PLL_LOCK_CTRL);
++	writel(reg, &regs->dp_debug_ctl);
++
++	/* PLL power up. */
++	reg = readl(&regs->dp_pd);
++	reg &= ~PD_PLL;
++	writel(reg, &regs->dp_pd);
++
++	/* Enable Serdes FIFO, link-symbol clock and AUX. */
++	reg = readl(&regs->func_en_2);
++	reg &= ~(SERDES_FIFO_FUNC_EN_N | LS_CLK_DOMAIN_FUNC_EN_N |
++		 AUX_FUNC_EN_N);
++	writel(reg, &regs->func_en_2);
++}
++
++static void rk3568_edp_init_aux(struct rk3288_edp *regs)
++{
++	u32 reg;
++
++	writel(RPLY_RECEIV | AUX_ERR, &regs->dp_int_sta);
++
++	/* AUX block power cycle, as in Linux analogix_dp_init_aux(). */
++	reg = readl(&regs->dp_pd);
++	reg |= PD_AUX;
++	writel(reg, &regs->dp_pd);
++	udelay(10);
++	reg &= ~PD_AUX;
++	writel(reg, &regs->dp_pd);
++
++	/* Disable AUX channel, then re-enable it. */
++	setbits_le32(&regs->func_en_2, AUX_FUNC_EN_N);
++
++	writel(0, (u8 *)regs + RK3568_AUX_HW_RETRY_CTL);
++	writel(DEFER_CTRL_EN | DEFER_COUNT(1), &regs->aux_ch_defer_dtl);
++
++	clrbits_le32(&regs->func_en_2, AUX_FUNC_EN_N);
++}
++
++static u32 rk_edp_bpc_bits(u32 bpc)
++{
++	switch (bpc) {
++	case 6:
++		return IN_BPC_6_BITS;
++	case 10:
++		return IN_BPC_10_BITS;
++	case 12:
++		return IN_BPC_12_BITS;
++	case 8:
++	default:
++		return IN_BPC_8_BITS;
++	}
++}
++
++static void rk3568_edp_init_controller(struct rk_edp_priv *priv)
++{
++	struct rk3288_edp *regs = priv->regs;
++	char tag[48];
++
++	/*
++	 * Vendor FUN_00a656ec (RK3568 controller init) writes FUNC_EN_1 =
++	 * 0xbd first.  That mask disables the master video, slave video,
++	 * audio FIFO, audio, HDCP and SW blocks, but explicitly leaves
++	 * VID_CAP_FUNC_EN_N (bit 6) clear.  The RK3568 reset value of that
++	 * bit is 1, so omitting this write leaves the video capture block
++	 * disabled: link training succeeds, yet STRM_VALID never asserts
++	 * (observed 0x70 instead of 0x74) and no pixels reach the panel.
++	 * Bit 7 reads back as zero regardless of the write.
++	 */
++	writel(0xbd, &regs->func_en_1);
++
++	rk3568_edp_init_analog_param(regs);
++	rk3568_edp_init_interrupt(regs);
++
++	/*
++	 * Vendor FUN_00a65c50 then clears bit 0 separately, after the mask
++	 * and analog setup: "SW-defined function normal operation".
++	 */
++	clrbits_le32(&regs->func_en_1, SW_FUNC_EN_N);
++
++	rk3568_edp_init_analog_func(regs);
++	rk3568_edp_init_aux(regs);
++
++	snprintf(tag, sizeof(tag), "edp_init_fe1_%x_fe2_%x_sg_%x",
++		 readl(&regs->func_en_1), readl(&regs->func_en_2),
++		 readl(&regs->soc_general_ctl));
++	z96a_marker(tag);
++
++	/* Panel bpc, RGB, VESA range (Z96A panel EDID: 8 bpc). */
++	writel(IN_D_RANGE_VESA | rk_edp_bpc_bits(priv->bpc) |
++	       IN_COLOR_F_RGB, &regs->video_ctl_2);
++}
++
++static int rk3568_edp_probe(struct udevice *dev, struct rk_edp_priv *priv)
++{
++	struct reset_ctl dp_rst, apb_rst;
++	int ret;
++
++	EDP_DIAG(3, 0);
++
++	/*
++	 * Panel power was enabled by the simple-panel probe.  100ms is far
++	 * beyond the panel power-up requirement and keeps the vendor's
++	 * original 200ms guard off the critical logo path.
++	 */
++	mdelay(100);
++
++	ret = reset_get_by_name(dev, "dp", &dp_rst);
++	if (ret) {
++		dev_err(dev, "failed to get eDP reset (ret=%d)\n", ret);
++		EDP_DIAG(4, ret);
++		return ret;
++	}
++	EDP_DIAG(4, 0);
++
++	reset_assert(&dp_rst);
++	udelay(20);
++	reset_deassert(&dp_rst);
++	EDP_DIAG(5, 0);
++
++	ret = reset_get_by_name(dev, "apb", &apb_rst);
++	if (!ret) {
++		reset_assert(&apb_rst);
++		udelay(20);
++		reset_deassert(&apb_rst);
++	}
++	EDP_DIAG(6, 0);
++
++	rk3568_edp_ungate_clocks();
++	EDP_DIAG(7, 0);
++
++	ret = generic_phy_get_by_name(dev, "dp", &priv->phy);
++	if (ret) {
++		dev_err(dev, "failed to get eDP PHY (ret=%d)\n", ret);
++		EDP_DIAG(8, ret);
++		return ret;
++	}
++	EDP_DIAG(8, 0);
++
++	ret = generic_phy_set_mode(&priv->phy, PHY_MODE_DP, 0);
++	if (ret) {
++		EDP_DIAG(9, ret);
++		return ret;
++	}
++	EDP_DIAG(9, 0);
++
++	ret = generic_phy_power_on(&priv->phy);
++	if (ret) {
++		dev_err(dev, "failed to power on eDP PHY (ret=%d)\n", ret);
++		EDP_DIAG(10, ret);
++		return ret;
++	}
++	EDP_DIAG(10, 0);
++
++	rockchip_edp_force_hpd(priv);
++	EDP_DIAG(11, 0);
++
++	rk3568_edp_init_controller(priv);
++	EDP_DIAG(12, 0);
++
++	return 0;
++}
++
+ static int rk_edp_aux_enable(struct rk3288_edp *regs)
+ {
+ 	ulong start;
+@@ -214,7 +516,8 @@ static int rk_edp_start_aux_transaction(struct rk3288_edp *regs)
+ 	}
+ 
+ 	/* Is AUX CH command reply received? */
+-	if (rk_edp_is_aux_reply(regs)) {
++	ret = rk_edp_is_aux_reply(regs);
++	if (ret) {
+ 		debug("AUX CH command reply failed!\n");
+ 		return ret;
+ 	}
+@@ -345,22 +648,62 @@ static int rk_edp_link_power_up(struct rk_edp_priv *edp)
+ 
+ static int rk_edp_link_configure(struct rk_edp_priv *edp)
+ {
++	struct phy_configure_opts_dp opts = { 0 };
+ 	u8 values[2];
++	int ret;
+ 
+ 	values[0] = edp->link_train.link_rate;
+ 	values[1] = edp->link_train.lane_count;
+ 
+-	return rk_edp_dpcd_write(edp->regs, DPCD_LINK_BW_SET, values,
+-				 sizeof(values));
++	ret = rk_edp_dpcd_write(edp->regs, DPCD_LINK_BW_SET, values,
++				sizeof(values));
++	if (ret)
++		return ret;
++
++	if (edp->chip_type == RK3568_EDP) {
++		opts.link_rate = edp->link_train.link_rate ==
++				 LINK_RATE_1_62GBPS ? 1620 : 2700;
++		opts.lanes = edp->link_train.lane_count;
++		opts.set_rate = true;
++		opts.set_lanes = true;
++		opts.ssc = true;
++
++		ret = generic_phy_configure(&edp->phy, &opts);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
+ }
+ 
+-static void rk_edp_set_link_training(struct rk_edp_priv *edp,
+-				     const u8 *training_values)
++static int rk_edp_set_link_training(struct rk_edp_priv *edp,
++				    const u8 *training_values)
+ {
+-	int i;
++	struct phy_configure_opts_dp opts = { 0 };
++	int i, ret;
+ 
+ 	for (i = 0; i < edp->link_train.lane_count; i++)
+ 		writel(training_values[i], &edp->regs->ln_link_trn_ctl[i]);
++
++	if (edp->chip_type == RK3568_EDP) {
++		opts.lanes = edp->link_train.lane_count;
++		opts.set_voltages = true;
++
++		for (i = 0; i < edp->link_train.lane_count; i++) {
++			opts.voltage[i] = (training_values[i] &
++					   DP_TRAIN_VOLTAGE_SWING_MASK) >>
++					  DP_TRAIN_VOLTAGE_SWING_SHIFT;
++			opts.pre[i] = (training_values[i] &
++				       DP_TRAIN_PRE_EMPHASIS_MASK) >>
++				      DP_TRAIN_PRE_EMPHASIS_SHIFT;
++		}
++
++		ret = generic_phy_configure(&edp->phy, &opts);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
+ }
+ 
+ static u8 edp_link_status(const u8 *link_status, int r)
+@@ -485,7 +828,7 @@ static int rk_edp_link_train_cr(struct rk_edp_priv *edp)
+ {
+ 	struct rk3288_edp *regs = edp->regs;
+ 	int clock_recovery;
+-	uint voltage, tries = 0;
++	uint voltage, tries = 0, total_tries = 0;
+ 	u8 status[DP_LINK_STATUS_SIZE];
+ 	int i, ret;
+ 	u8 value;
+@@ -503,7 +846,11 @@ static int rk_edp_link_train_cr(struct rk_edp_priv *edp)
+ 	voltage = 0xff;
+ 
+ 	while (1) {
+-		rk_edp_set_link_training(edp, edp->train_set);
++		if (++total_tries > MAX_CR_TOTAL_LOOP)
++			return -ETIMEDOUT;
++		ret = rk_edp_set_link_training(edp, edp->train_set);
++		if (ret)
++			return ret;
+ 		ret = rk_edp_dpcd_write(regs, DPCD_TRAINING_LANE0_SET,
+ 					edp->train_set,
+ 					edp->link_train.lane_count);
+@@ -515,7 +862,7 @@ static int rk_edp_link_train_cr(struct rk_edp_priv *edp)
+ 		ret = rk_edp_dpcd_read_link_status(edp, status);
+ 		if (ret) {
+ 			printf("displayport link status failed, ret=%d\n", ret);
+-			break;
++			return ret;
+ 		}
+ 
+ 		clock_recovery = rk_edp_clock_recovery(status,
+@@ -579,7 +926,9 @@ static int rk_edp_link_train_ce(struct rk_edp_priv *edp)
+ 	/* channel equalization loop */
+ 	channel_eq = 0;
+ 	for (tries = 0; tries < 5; tries++) {
+-		rk_edp_set_link_training(edp, edp->train_set);
++		ret = rk_edp_set_link_training(edp, edp->train_set);
++		if (ret)
++			return ret;
+ 		ret = rk_edp_dpcd_write(regs, DPCD_TRAINING_LANE0_SET,
+ 					edp->train_set,
+ 					edp->link_train.lane_count);
+@@ -640,7 +989,9 @@ static int rk_edp_init_training(struct rk_edp_priv *edp)
+ 		return -EPERM;
+ 	}
+ 
+-	if (edp->link_train.lane_count == 0) {
++	if (edp->link_train.lane_count != 1 &&
++	    edp->link_train.lane_count != 2 &&
++	    edp->link_train.lane_count != 4) {
+ 		debug("Rx Max Lane count is abnormal :%x\n",
+ 		      edp->link_train.lane_count);
+ 		return -EPERM;
+@@ -657,6 +1008,8 @@ static int rk_edp_hw_link_training(struct rk_edp_priv *edp)
+ {
+ 	ulong start;
+ 	u32 val;
++	u8 config[3], status[DP_LINK_STATUS_SIZE], cap, lane;
++	char tag[96];
+ 	int ret;
+ 
+ 	/* Set link rate and count as you want to establish */
+@@ -678,12 +1031,58 @@ static int rk_edp_hw_link_training(struct rk_edp_priv *edp)
+ 			break;
+ 	} while (get_timer(start) < 10);
+ 
++	snprintf(tag, sizeof(tag), "lt_hw_%x_src_%x", val,
++		 readl(&edp->regs->dp_training_ptn_set));
++	z96a_marker(tag);
++	if (val & HW_LT_EN)
++		return -ETIMEDOUT;
+ 	if (val & HW_LT_ERR_CODE_MASK) {
+ 		printf("edp hw link training error: %d\n",
+ 		       val >> HW_LT_ERR_CODE_SHIFT);
+ 		return -EIO;
+ 	}
+ 
++	/* Diagnostic readback only: don't assume the HW cleared training. */
++	ret = rk_edp_dpcd_read(edp->regs, DPCD_LINK_BW_SET, config,
++			       sizeof(config));
++	if (ret) {
++		z96a_marker("lt_dpcd_config_read_fail");
++		return ret;
++	}
++	ret = rk_edp_dpcd_read_link_status(edp, status);
++	if (ret) {
++		z96a_marker("lt_dpcd_status_read_fail");
++		return ret;
++	}
++	snprintf(tag, sizeof(tag), "lt_sink_%x_%x_%x_status_%x_%x_%x",
++		 config[0], config[1], config[2], status[0], status[1],
++		 status[2]);
++	z96a_marker(tag);
++
++	/* RAM test: follow the vendor's paired enhanced-framing setup only
++	 * when the receiver advertises support. Preserve all other DPCD bits.
++	 */
++	ret = rk_edp_dpcd_read(edp->regs, DPCD_MAX_LANE_COUNT, &cap, 1);
++	if (ret)
++		return ret;
++	lane = config[1];
++	snprintf(tag, sizeof(tag), "enh_before_cap_%x_lane_%x_src_%x",
++		 cap, lane, readl(&edp->regs->sys_ctl_4));
++	z96a_marker(tag);
++	if (cap & DP_ENHANCED_FRAME_CAP) {
++		lane |= BIT(7);
++		ret = rk_edp_dpcd_write(edp->regs, DPCD_LANE_COUNT_SET, &lane, 1);
++		if (ret)
++			return ret;
++		setbits_le32(&edp->regs->sys_ctl_4, ENHANCED);
++		ret = rk_edp_dpcd_read(edp->regs, DPCD_LANE_COUNT_SET, &lane, 1);
++		if (ret)
++			return ret;
++	}
++	snprintf(tag, sizeof(tag), "enh_after_lane_%x_src_%x", lane,
++		 readl(&edp->regs->sys_ctl_4));
++	z96a_marker(tag);
++
+ 	return 0;
+ }
+ 
+@@ -811,9 +1210,33 @@ static void rk_edp_init_video(struct rk3288_edp *regs)
+ 	writel(VID_HRES_TH(2) | VID_VRES_TH(0), &regs->video_ctl_8);
+ }
+ 
+-static void rk_edp_config_video_slave_mode(struct rk3288_edp *regs)
++static void rk_edp_config_video_slave_mode(struct rk_edp_priv *edp)
+ {
+-	clrbits_le32(&regs->func_en_1, VID_FIFO_FUNC_EN_N | VID_CAP_FUNC_EN_N);
++	struct rk3288_edp *regs = edp->regs;
++	u32 reg;
++	char tag[48];
++
++	/*
++	 * Vendor analogix_dp_config_video_slave_mode(): the master video
++	 * function is disabled (its enable is active-low) and the slave
++	 * video function enabled so the controller takes stream and clock
++	 * from the VOP input; audio selects SPDIF mode and video selects
++	 * slave mode in SOC_GENERAL_CTL.  The RK3288-era code instead
++	 * cleared unrelated FUNC_EN_1 bits and never touched either
++	 * register.  Sync polarity bits of VIDEO_CTL_10 are written by
++	 * rk3568_edp_set_video_format() with the same vendor semantics.
++	 */
++	reg = readl(&regs->func_en_1);
++	reg &= ~(MASTER_VID_FUNC_EN_N | SLAVE_VID_FUNC_EN_N);
++	reg |= MASTER_VID_FUNC_EN_N;
++	writel(reg, &regs->func_en_1);
++
++	writel(AUDIO_MODE_SPDIF_MODE | VIDEO_MODE_SLAVE_MODE,
++	       &regs->soc_general_ctl);
++
++	snprintf(tag, sizeof(tag), "edp_slave_fe1_%x_sg_%x",
++		 readl(&regs->func_en_1), readl(&regs->soc_general_ctl));
++	z96a_marker(tag);
+ }
+ 
+ static void rk_edp_set_video_cr_mn(struct rk3288_edp *regs,
+@@ -880,20 +1303,148 @@ static int rk_edp_is_video_stream_on(struct rk_edp_priv *edp)
+ 		writel(val, &edp->regs->sys_ctl_3);
+ 
+ 		val = readl(&edp->regs->sys_ctl_3);
+-		if (!(val & STRM_VALID))
++		if (val & STRM_VALID)
+ 			return 0;
+ 	} while (get_timer(start) < 100);
+ 
+ 	return -ETIMEDOUT;
+ }
+ 
++/*
++ * Vendor analogix_dp_set_video_format(): program the video timing
++ * configuration registers (0x48-0x88) and the sync polarity bits of
++ * VIDEO_CTL_10 from the display timing.  The factory firmware always
++ * does this before config_video; without it those registers stay at
++ * their reset values and the controller transmits no active pixels.
++ */
++static void rk3568_edp_set_video_format(struct rk_edp_priv *edp,
++					const struct display_timing *t)
++{
++	struct rk3288_edp *regs = edp->regs;
++	unsigned int hsw, hfp, hbp, vsw, vfp, vbp;
++	u32 vtotal, htotal;
++	u32 reg;
++	char tag[48];
++
++	vtotal = t->vactive.typ + t->vfront_porch.typ + t->vsync_len.typ +
++		 t->vback_porch.typ;
++	htotal = t->hactive.typ + t->hfront_porch.typ + t->hsync_len.typ +
++		 t->hback_porch.typ;
++	hsw = t->hsync_len.typ;
++	hfp = t->hfront_porch.typ;
++	hbp = t->hback_porch.typ;
++	vsw = t->vsync_len.typ;
++	vfp = t->vfront_porch.typ;
++	vbp = t->vback_porch.typ;
++
++	writel(TOTAL_LINE_CFG_L(vtotal), &regs->total_line_l);
++	writel(TOTAL_LINE_CFG_H(vtotal >> 8), &regs->total_line_h);
++	writel(ACTIVE_LINE_CFG_L(t->vactive.typ), &regs->active_line_l);
++	writel(ACTIVE_LINE_CFG_H(t->vactive.typ >> 8), &regs->active_line_h);
++	writel(V_F_PORCH_CFG(vfp), &regs->v_f_porch);
++	writel(V_SYNC_WIDTH_CFG(vsw), &regs->vsync);
++	writel(V_B_PORCH_CFG(vbp), &regs->v_b_porch);
++	writel(TOTAL_PIXEL_CFG_L(htotal), &regs->total_pixel_l);
++	writel(TOTAL_PIXEL_CFG_H(htotal >> 8), &regs->total_pixel_h);
++	writel(ACTIVE_PIXEL_CFG_L(t->hactive.typ), &regs->active_pixel_l);
++	writel(ACTIVE_PIXEL_CFG_H(t->hactive.typ >> 8), &regs->active_pixel_h);
++	writel(H_F_PORCH_CFG_L(hfp), &regs->h_f_porch_l);
++	writel(H_F_PORCH_CFG_H(hfp >> 8), &regs->h_f_porch_h);
++	writel(H_SYNC_CFG_L(hsw), &regs->hsync_l);
++	writel(H_SYNC_CFG_H(hsw >> 8), &regs->hysnc_h);
++	writel(H_B_PORCH_CFG_L(hbp), &regs->h_b_porch_l);
++	writel(H_B_PORCH_CFG_H(hbp >> 8), &regs->h_b_porch_h);
++
++	/*
++	 * Vendor polarity semantics (analogix_dp_config_video_slave_mode):
++	 * the bit is set for a negative sync; interlace stays progressive.
++	 */
++	reg = readl(&regs->video_ctl_10);
++	reg &= ~(INTERACE_SCAN_CFG | VSYNC_POLARITY_CFG | HSYNC_POLARITY_CFG);
++	if (!(t->flags & DISPLAY_FLAGS_VSYNC_HIGH))
++		reg |= VSYNC_POLARITY_CFG;
++	if (!(t->flags & DISPLAY_FLAGS_HSYNC_HIGH))
++		reg |= HSYNC_POLARITY_CFG;
++	writel(reg, &regs->video_ctl_10);
++
++	snprintf(tag, sizeof(tag), "edp_prog_tl%04x_%x_al%04x_%x",
++		 readl(&regs->total_line_l), readl(&regs->total_line_h),
++		 readl(&regs->active_line_l), readl(&regs->active_line_h));
++	z96a_marker(tag);
++	snprintf(tag, sizeof(tag), "edp_prog_vf%x_vs%x_vb%x",
++		 readl(&regs->v_f_porch), readl(&regs->vsync),
++		 readl(&regs->v_b_porch));
++	z96a_marker(tag);
++	snprintf(tag, sizeof(tag), "edp_prog_tp%04x_%x_ap%04x_%x",
++		 readl(&regs->total_pixel_l), readl(&regs->total_pixel_h),
++		 readl(&regs->active_pixel_l), readl(&regs->active_pixel_h));
++	z96a_marker(tag);
++	snprintf(tag, sizeof(tag), "edp_prog_hf%x_hy%x_hb%x_ctl10_%x",
++		 readl(&regs->h_f_porch_l), readl(&regs->hsync_l),
++		 readl(&regs->h_b_porch_l), readl(&regs->video_ctl_10));
++	z96a_marker(tag);
++}
++
++/*
++ * RAM test only: enable the controller-internal video BIST.  The vendor
++ * binary exposes this through the "analogix,video-bist-enable" DT flag
++ * and programs VIDEO_CTL_4 = BIST_EN with VIDEO_CTL_10.F_SEL cleared;
++ * the generated pattern bypasses the VOP entirely, which separates a
++ * panel/eDP-side failure from a VOP-side failure.  Gray bars are used
++ * so the BIST phase is visually distinct from the VOP color bar.
++ */
++static struct rk_edp_priv *z96a_bist_priv;
++
++void z96a_edp_bist_gray(int on)
++{
++	struct rk_edp_priv *edp = z96a_bist_priv;
++	u32 val;
++	char tag[48];
++
++	if (!edp) {
++		z96a_marker(on ? "bist_absent_on" : "bist_absent_off");
++		return;
++	}
++	val = on ? (BIST_EN | BIST_TYPE_GRAY_BAR) : 0;
++	writel(val, &edp->regs->video_ctl_4);
++	snprintf(tag, sizeof(tag), "bist_%u_ctl4_%x",
++		 on ? 1 : 0, readl(&edp->regs->video_ctl_4));
++	z96a_marker(tag);
++}
++
++/*
++ * RAM-test logo support: when z96a_defer_backlight is set, rk_edp_enable()
++ * leaves the backlight off so the caller can paint the framebuffer first.
++ * This turns it on afterwards.
++ */
++int z96a_edp_backlight_on(void)
++{
++	struct rk_edp_priv *edp = z96a_bist_priv;
++
++	if (!edp)
++		return -ENODEV;
++	z96a_marker("edp_backlight_manual");
++	return panel_enable_backlight(edp->panel);
++}
++
+ static int rk_edp_config_video(struct rk_edp_priv *edp)
+ {
++	char tag[48];
+ 	int ret;
+ 
+-	rk_edp_config_video_slave_mode(edp->regs);
++	rk_edp_config_video_slave_mode(edp);
++
++	if (edp->chip_type == RK3568_EDP)
++		writel(IN_D_RANGE_VESA | rk_edp_bpc_bits(edp->bpc) |
++		       IN_COLOR_F_RGB, &edp->regs->video_ctl_2);
+ 
+-	if (!rk_edp_get_pll_locked(edp->regs)) {
++	/*
++	 * RK3568's main-link PLL is in the external Naneng PHY.  Linux
++	 * does not gate video configuration on the Analogix internal
++	 * PLL-lock bit for this SoC.
++	 */
++	if (edp->chip_type != RK3568_EDP &&
++	    !rk_edp_get_pll_locked(edp->regs)) {
+ 		debug("PLL is not locked yet.\n");
+ 		return -ETIMEDOUT;
+ 	}
+@@ -914,7 +1465,11 @@ static int rk_edp_config_video(struct rk_edp_priv *edp)
+ 	/* Enable video at next frame */
+ 	setbits_le32(&edp->regs->video_ctl_1, VIDEO_EN);
+ 
+-	return rk_edp_is_video_stream_on(edp);
++	ret = rk_edp_is_video_stream_on(edp);
++	snprintf(tag, sizeof(tag), "edp_stream_%s_ctl3_%x",
++		 ret ? "timeout" : "valid", readl(&edp->regs->sys_ctl_3));
++	z96a_marker(tag);
++	return ret;
+ }
+ 
+ static void rockchip_edp_force_hpd(struct rk_edp_priv *edp)
+@@ -960,24 +1515,78 @@ static int rk_edp_enable(struct udevice *dev, int panel_bpp,
+ 			 const struct display_timing *edid)
+ {
+ 	struct rk_edp_priv *priv = dev_get_priv(dev);
++	char tag[48];
+ 	int ret = 0;
+ 
++	/* RAM test: make the eDP device reachable for the BIST phase. */
++	z96a_bist_priv = priv;
++
++	z96a_marker("edp_link_train");
+ 	ret = rk_edp_set_link_train(priv);
+ 	if (ret) {
++		z96a_marker("edp_link_train_fail");
+ 		printf("link train failed!\n");
+ 		return ret;
+ 	}
++	z96a_marker("edp_link_ok");
++
++	/*
++	 * Link training is complete.  Enable the VOP output before config_video
++	 * so the eDP controller can see the video stream clock.
++	 */
++	z96a_marker("vop_output_hook");
++	z96a_vop_output_on();
++	z96a_marker("vop_output_hook_done");
+ 
+ 	rk_edp_init_video(priv->regs);
++	rk3568_edp_set_video_format(priv, edid);
+ 	ret = rk_edp_config_video(priv);
+ 	if (ret) {
++		z96a_marker("edp_config_video_fail");
+ 		printf("config video failed\n");
+ 		return ret;
+ 	}
+-	ret = panel_enable_backlight(priv->panel);
+-	if (ret) {
+-		debug("%s: backlight error: %d\n", __func__, ret);
+-		return ret;
++	z96a_marker("edp_video_ok");
++
++	/* Actual running timing as sampled by the controller. */
++	snprintf(tag, sizeof(tag), "edp_sta_tl%04x_%x_al%04x_%x",
++		 readl(&priv->regs->total_line_sta_l),
++		 readl(&priv->regs->total_line_sta_h),
++		 readl(&priv->regs->active_line_sta_l),
++		 readl(&priv->regs->active_line_sta_h));
++	z96a_marker(tag);
++	snprintf(tag, sizeof(tag), "edp_sta_tp%04x_%x_ap%04x_%x",
++		 readl(&priv->regs->total_pixel_sta_l),
++		 readl(&priv->regs->total_pixel_sta_h),
++		 readl(&priv->regs->active_pixel_sta_l),
++		 readl(&priv->regs->active_pixel_sta_h));
++	z96a_marker(tag);
++
++	/* The eDP video stream is configured; now enable the ESMART plane. */
++	z96a_marker("vop_plane_on");
++	z96a_vop_plane_on();
++	z96a_marker("vop_plane_on_done");
++
++	/* BOE NV140FHM-N43: 50 ms from valid video to backlight enable. */
++	if (priv->chip_type == RK3568_EDP)
++		mdelay(50);
++
++	z96a_marker("edp_backlight");
++	if (z96a_defer_backlight) {
++		/*
++		 * RAM-test logo: keep the panel dark until the caller has
++		 * painted the framebuffer, so no stale white frame is
++		 * visible before the logo appears.
++		 */
++		z96a_marker("edp_backlight_deferred");
++	} else {
++		ret = panel_enable_backlight(priv->panel);
++		if (ret) {
++			z96a_marker("edp_backlight_fail");
++			debug("%s: backlight error: %d\n", __func__, ret);
++			return ret;
++		}
++		z96a_marker("edp_backlight_ok");
+ 	}
+ 
+ 	return 0;
+@@ -1056,13 +1665,23 @@ static int rk_edp_probe(struct udevice *dev)
+ 	struct clk clk;
+ 	int ret;
+ 
++	EDP_DIAG(1, 0);
++
+ 	ret = uclass_get_device_by_phandle(UCLASS_PANEL, dev, "rockchip,panel",
+ 					   &priv->panel);
+ 	if (ret) {
+ 		debug("%s: Cannot find panel for '%s' (ret=%d)\n", __func__,
+ 		      dev->name, ret);
++		EDP_DIAG(2, ret);
+ 		return ret;
+ 	}
++	EDP_DIAG(2, 0);
++
++	priv->chip_type = edp_data->chip_type;
++	priv->bpc = dev_read_u32_default(dev, "bpc", 8);
++
++	if (priv->chip_type == RK3568_EDP)
++		return rk3568_edp_probe(dev, priv);
+ 
+ 	ret = reset_get_by_name(dev, "dp", &dp_rst);
+ 	if (ret) {
+@@ -1129,8 +1748,82 @@ static int rk_edp_probe(struct udevice *dev)
+ 	return 0;
+ }
+ 
++static int rk_edp_read_timing(struct udevice *dev,
++			      struct display_timing *timing)
++{
++	struct rk_edp_priv *priv = dev_get_priv(dev);
++	ofnode node;
++	int ret;
++
++	ret = panel_get_display_timing(priv->panel, timing);
++	if (!ret)
++		return 0;
++
++	/*
++	 * RAM-test fallback: on this board the live FDT timing decoder can
++	 * return -ENOENT even though the panel node has a complete
++	 * display-timings subnode.  Build the same timing directly from the
++	 * panel DT so the display path can still be validated.
++	 */
++	node = ofnode_path("/panel/display-timings/timing0");
++	if (!ofnode_valid(node))
++		return ret;
++
++#define SET_TIMING(_e, _v) do { \
++	(_e).min = (_e).typ = (_e).max = (_v); \
++} while (0)
++
++	SET_TIMING(timing->pixelclock,
++		   ofnode_read_u32_default(node, "clock-frequency", 0));
++	SET_TIMING(timing->hactive,
++		   ofnode_read_u32_default(node, "hactive", 0));
++	SET_TIMING(timing->hfront_porch,
++		   ofnode_read_u32_default(node, "hfront-porch", 0));
++	SET_TIMING(timing->hsync_len,
++		   ofnode_read_u32_default(node, "hsync-len", 0));
++	SET_TIMING(timing->hback_porch,
++		   ofnode_read_u32_default(node, "hback-porch", 0));
++	SET_TIMING(timing->vactive,
++		   ofnode_read_u32_default(node, "vactive", 0));
++	SET_TIMING(timing->vfront_porch,
++		   ofnode_read_u32_default(node, "vfront-porch", 0));
++	SET_TIMING(timing->vsync_len,
++		   ofnode_read_u32_default(node, "vsync-len", 0));
++	SET_TIMING(timing->vback_porch,
++		   ofnode_read_u32_default(node, "vback-porch", 0));
++
++	timing->flags = 0;
++	if (ofnode_read_u32_default(node, "hsync-active", 1))
++		timing->flags |= DISPLAY_FLAGS_HSYNC_HIGH;
++	else
++		timing->flags |= DISPLAY_FLAGS_HSYNC_LOW;
++	if (ofnode_read_u32_default(node, "vsync-active", 0))
++		timing->flags |= DISPLAY_FLAGS_VSYNC_HIGH;
++	else
++		timing->flags |= DISPLAY_FLAGS_VSYNC_LOW;
++	if (ofnode_read_u32_default(node, "de-active", 1))
++		timing->flags |= DISPLAY_FLAGS_DE_HIGH;
++	else
++		timing->flags |= DISPLAY_FLAGS_DE_LOW;
++	if (ofnode_read_u32_default(node, "pixelclk-active", 0))
++		timing->flags |= DISPLAY_FLAGS_PIXDATA_POSEDGE;
++	else
++		timing->flags |= DISPLAY_FLAGS_PIXDATA_NEGEDGE;
++
++#undef SET_TIMING
++
++	if (!timing->pixelclock.typ || !timing->hactive.typ ||
++	    !timing->vactive.typ)
++		return ret;
++
++	z96a_diag_edp_fallback = 1;
++
++	return 0;
++}
++
+ static const struct dm_display_ops dp_rockchip_ops = {
+ 	.read_edid = rk_edp_read_edid,
++	.read_timing = rk_edp_read_timing,
+ 	.enable = rk_edp_enable,
+ };
+ 
+@@ -1142,6 +1835,10 @@ static const struct rockchip_dp_data rk3399_edp = {
+ 	.chip_type = RK3399_EDP,
+ };
+ 
++static const struct rockchip_dp_data rk3568_edp = {
++	.chip_type = RK3568_EDP,
++};
++
+ static const struct rockchip_dp_data rk3288_dp = {
+ 	.reg_vop_big_little = RK3288_GRF_SOC_CON6,
+ 	.reg_vop_big_little_sel = BIT(5),
+@@ -1154,6 +1851,7 @@ static const struct udevice_id rockchip_dp_ids[] = {
+ 	{ .compatible = "rockchip,rk3288-dp", .data = (ulong)&rk3288_dp },
+ 	{ .compatible = "rockchip,rk3288-edp", .data = (ulong)&rk3288_dp },
+ 	{ .compatible = "rockchip,rk3399-edp", .data = (ulong)&rk3399_edp },
++	{ .compatible = "rockchip,rk3568-edp", .data = (ulong)&rk3568_edp },
+ 	{ }
+ };
+ 
+diff --git a/drivers/video/rockchip/rk_vop2.c b/drivers/video/rockchip/rk_vop2.c
+new file mode 100644
+index 0000000000..5bb9aedef0
+--- /dev/null
++++ b/drivers/video/rockchip/rk_vop2.c
+@@ -0,0 +1,829 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Copyright (c) 2024 - 2025 Dang Huynh <dang.huynh@mainlining.org>
++ *
++ * Based on rk_vop.c:
++ *   Copyright (c) 2015 Google, Inc
++ *   Copyright 2014 Rockchip Inc.
++ */
++
++#include <clk.h>
++#include <display.h>
++#include <dm.h>
++#include <dm/device_compat.h>
++#include <edid.h>
++#include <log.h>
++#include <regmap.h>
++#include <reset.h>
++#include <syscon.h>
++#include <video.h>
++#include <asm/global_data.h>
++#include <asm/gpio.h>
++#include <asm/io.h>
++#include <asm/arch-rockchip/clock.h>
++#include <asm/arch-rockchip/cru_rk3568.h>
++#include <asm/arch-rockchip/vop_rk3568.h>
++#include <dm/device-internal.h>
++#include <dm/uclass-internal.h>
++#include <efi.h>
++#include <efi_loader.h>
++#include <linux/bitops.h>
++#include <linux/err.h>
++#include <power/regulator.h>
++
++#include "rk_vop2.h"
++
++DECLARE_GLOBAL_DATA_PTR;
++
++/* Temporary RAM-test diagnostics, defined in z96a_rk3568/board.c */
++extern int z96a_diag_vop_stage;
++extern int z96a_diag_vop_ret;
++extern int z96a_diag_vop_port;
++extern int z96a_diag_vop_win_id;
++extern int z96a_diag_vop_layer;
++extern int z96a_diag_vop_esmart;
++extern void z96a_marker(const char *tag);
++
++#define VOP_DIAG(stage, err) do { \
++	if ((stage) > z96a_diag_vop_stage) { \
++		z96a_diag_vop_stage = (stage); \
++		z96a_diag_vop_ret = (err); \
++		z96a_diag_vop_port = port_id; \
++	} \
++} while (0)
++
++enum vop_pol {
++	HSYNC_POSITIVE = 0,
++	VSYNC_POSITIVE = 1,
++	DEN_NEGATIVE   = 2,
++	DCLK_INVERT    = 3
++};
++
++static void rkvop2_cfg_regdone(struct rk3568_vop_sysctrl *sysctrl, int port)
++{
++	u32 reg;
++
++	reg = M_GLOBAL_REGDONE;
++
++	/*
++	 * For RK3588, changes will only take effect when the same bit is
++	 * leftshifted by 16.
++	 */
++	reg |= M_LOAD_GLOBAL(port) | M_LOAD_GLOBAL(port) << 16;
++
++	writel(reg, &sysctrl->reg_cfg_done);
++}
++
++static int rkvop2_enable(struct udevice *dev, ulong fbbase,
++			 int fb_bits_per_pixel, const struct display_timing *edid,
++			 int port, int win_id, struct rkvop2_platdata *platdata)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct rk3568_vop_overlay *overlay = priv->regs + VOP2_OVERLAY_OFFSET;
++	struct rk3568_vop_esmart *esmart;
++	int esmart_idx = -1;
++	bool is_cluster = false;
++	u8 layer;
++	u32 reg;
++	u32 rgb_mode;
++	u32 hactive = edid->hactive.typ;
++	u32 vactive = edid->vactive.typ;
++
++	if (win_id < 0 || win_id > 9)
++		return -EINVAL;
++
++	/*
++	 * win_id is the RK3568 hardware layer ID (0..9).  The platdata
++	 * layers[] table is not reliable across the RK3566/RK3568 enum
++	 * aliases, so use the hardware ID directly.
++	 */
++	layer = win_id;
++
++	/*
++	 * RK3568 layer IDs: Cluster0/1=0/1, Esmart0/1=2/3, Smart0/1=4/5,
++	 * Cluster2/3=6/7, Esmart2/3=8/9.  Only the ESMART windows are
++	 * implemented here; SMART planes are not supported.
++	 */
++	switch (layer) {
++	case 0:
++	case 1:
++	case 6:
++	case 7:
++		is_cluster = true;
++		break;
++	case 2:
++	case 3:
++		esmart_idx = layer - 2;
++		break;
++	case 8:
++	case 9:
++		esmart_idx = layer - 6;
++		break;
++	default:
++		dev_err(dev, "layer %d is not an ESMART window\n", layer);
++		return -ENOSYS;
++	}
++
++	z96a_diag_vop_win_id = win_id;
++	z96a_diag_vop_layer = layer;
++	z96a_diag_vop_esmart = esmart_idx;
++
++	debug("(%s, %s): win_id = %d - layer = %d - esmart = %d - cluster: %d\n",
++	      dev_read_name(dev), __func__, win_id, layer, esmart_idx,
++	      is_cluster);
++
++	/* TODO: Support VOP2 CLUSTER */
++	if (is_cluster) {
++		dev_err(dev, "win_id is a cluster, not supported.\n");
++		return -ENOSYS;
++	}
++
++	esmart = priv->regs + VOP2_ESMART_OFFSET(esmart_idx);
++
++	debug("(%s, %s): esmart addr: 0x%p\n", dev_read_name(dev), __func__, esmart);
++
++	writel(V_ACT_WIDTH(hactive - 1) | V_ACT_HEIGHT(vactive - 1),
++	       &esmart->esmart_region0_act_info);
++
++	/* Set offset to 0,0 */
++	writel(0, &esmart->esmart_region0_dsp_offset);
++
++	writel(V_DSP_WIDTH(hactive - 1) |
++			V_DSP_HEIGHT(vactive - 1),
++			&esmart->esmart_region0_dsp_info);
++
++	switch (fb_bits_per_pixel) {
++	case 16:
++		rgb_mode = RGB565;
++		writel(V_RGB565_VIRWIDTH(hactive), &esmart->esmart_region0_vir);
++		break;
++	case 24:
++		rgb_mode = RGB888;
++		writel(V_RGB888_VIRWIDTH(hactive), &esmart->esmart_region0_vir);
++		break;
++	case 32:
++	default:
++		rgb_mode = ARGB8888;
++		writel(V_ARGB888_VIRWIDTH(hactive), &esmart->esmart_region0_vir);
++		break;
++	}
++
++	writel(fbbase, &esmart->esmart_region0_mst_yrgb);
++
++	priv->esmart_mst_ctl = V_ESMART_REGION0_DATA_FMT(rgb_mode) |
++			       M_ESMART_REGION0_MST_EN;
++	/* Defer MST_EN until after the eDP video stream is configured. */
++	writel(V_ESMART_REGION0_DATA_FMT(rgb_mode),
++	       &esmart->esmart_region0_mst_ctl);
++
++	/* Set esmart to the destination video port */
++	reg = V_ESMART_SEL_PORT(esmart_idx, port);
++
++	/*
++	 * VOP2 requires every port mux to be configured.
++	 *
++	 * As U-Boot only supports singledisplay, we'll set all
++	 * unused ports to set layer to 8 (disabled).
++	 */
++	for (int i = 0; i < 4; i++) {
++		if (i != port)
++			reg |= V_PORT_MUX(8, i);
++	}
++
++	writel(reg, &overlay->port_sel);
++
++	/* Set layer 0 to win_id */
++	writel(V_LAYER_SEL(0, win_id), &overlay->layer_sel);
++
++	reg = readl(&overlay->overlay_ctrl) | M_LAYER_SEL_REGDONE_EN;
++	writel(reg, &overlay->overlay_ctrl);
++
++	priv->layer = layer;
++
++	return 0;
++}
++
++void rk_vop2_disable(struct udevice *dev)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct rk3568_vop_sysctrl *sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++	struct rk3568_vop_esmart *esmart;
++	struct rk3568_vop_post *post;
++	int esmart_idx = -1;
++
++	/*
++	 * If the plane was enabled but link training or panel enable failed,
++	 * leave the VOP2 plane disabled before handing over to Linux/Linux's
++	 * VOP2 driver.  Otherwise the ESMART keeps scanning the framebuffer
++	 * and the Linux VOP2 IOMMU attach can fail.
++	 */
++	switch (priv->layer) {
++	case 2:
++	case 3:
++		esmart_idx = priv->layer - 2;
++		break;
++	case 8:
++	case 9:
++		esmart_idx = priv->layer - 6;
++		break;
++	default:
++		break;
++	}
++	if (esmart_idx >= 0) {
++		esmart = priv->regs + VOP2_ESMART_OFFSET(esmart_idx);
++		writel(0, &esmart->esmart_region0_mst_ctl);
++	}
++
++	if (priv->vp >= 0) {
++		post = priv->regs + VOP2_POST_OFFSET(priv->vp);
++		clrbits_le32(&post->color_ctrl, M_POST_COLORBAR_EN);
++		clrsetbits_le32(&post->dsp_ctrl, M_POST_STANDBY,
++				V_POST_STANDBY(1));
++		rkvop2_cfg_regdone(sysctrl, priv->vp);
++	}
++}
++
++/* RAM-test only: distinguish VP output from plane/framebuffer scanout. */
++void z96a_vop_test_colorbar(struct udevice *dev)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct rk3568_vop_post *post;
++	struct rk3568_vop_sysctrl *sysctrl;
++
++	if (priv->vp < 0)
++		return;
++	post = priv->regs + VOP2_POST_OFFSET(priv->vp);
++	sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++	setbits_le32(&post->color_ctrl, M_POST_COLORBAR_EN);
++	rkvop2_cfg_regdone(sysctrl, priv->vp);
++}
++
++/* RAM-test only: turn the post color bar off again. */
++void z96a_vop_test_colorbar_off(struct udevice *dev)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct rk3568_vop_post *post;
++	struct rk3568_vop_sysctrl *sysctrl;
++
++	if (priv->vp < 0)
++		return;
++	post = priv->regs + VOP2_POST_OFFSET(priv->vp);
++	sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++	clrbits_le32(&post->color_ctrl, M_POST_COLORBAR_EN);
++	rkvop2_cfg_regdone(sysctrl, priv->vp);
++}
++
++static void rkvop2_set_pin_polarity(struct udevice *dev,
++				    enum vop_modes mode, u32 polarity)
++{
++	struct rkvop2_driverdata *ops =
++		(struct rkvop2_driverdata *)dev_get_driver_data(dev);
++
++	if (ops->set_pin_polarity)
++		ops->set_pin_polarity(dev, mode, polarity);
++}
++
++static void rkvop2_enable_output(struct udevice *dev, enum vop_modes mode, u32 port)
++{
++	struct rkvop2_driverdata *ops =
++		(struct rkvop2_driverdata *)dev_get_driver_data(dev);
++
++	if (ops->enable_output)
++		ops->enable_output(dev, mode, port);
++}
++
++/*
++ * The eDP driver calls this after link training and before configuring the
++ * eDP video stream.  The VOP output must be running so that the eDP
++ * controller sees the video stream clock, but it must not be enabled before
++ * link training or the VOP/memory bus hangs on RK3568.
++ */
++static struct udevice *z96a_edp_vop_dev;
++static int z96a_edp_vop_port;
++static u32 z96a_edp_vop_polarity;
++
++void z96a_vop_output_on(void)
++{
++	struct rk_vop2_priv *priv;
++	struct rk3568_vop_esmart *esmart;
++	struct rk3568_vop_sysctrl *sysctrl;
++	struct rk3568_vop_post *post;
++	char tag[96];
++
++	if (!z96a_edp_vop_dev)
++		return;
++
++	priv = dev_get_priv(z96a_edp_vop_dev);
++	esmart = priv->regs + VOP2_ESMART_OFFSET(0);
++	sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++	post = priv->regs + VOP2_POST_OFFSET(priv->vp);
++
++	/* Keep the plane disabled while the output interface starts. */
++	writel(0, &esmart->esmart_region0_mst_ctl);
++
++	z96a_marker("dsp_en_zero");
++	writel(0, &((struct rk3568_vop_sysctrl *)
++		    (priv->regs + VOP2_SYSREG_OFFSET))->dsp_en);
++	z96a_marker("dsp_en_zero_done");
++
++	z96a_marker("dsp_en_edp_only");
++	writel(BIT(3), &((struct rk3568_vop_sysctrl *)
++			(priv->regs + VOP2_SYSREG_OFFSET))->dsp_en);
++	z96a_marker("dsp_en_edp_only_done");
++
++	z96a_marker("vop_output_enable");
++	rkvop2_enable_output(z96a_edp_vop_dev, VOP_MODE_EDP,
++			     z96a_edp_vop_port);
++	z96a_marker("vop_output_enabled");
++	z96a_marker("vop_pol_enable");
++	rkvop2_set_pin_polarity(z96a_edp_vop_dev, VOP_MODE_EDP,
++				z96a_edp_vop_polarity);
++	z96a_marker("vop_pol_enabled");
++
++	snprintf(tag, sizeof(tag), "vopout_en_%x_pol_%x_vpctrl_%x",
++		 readl(&sysctrl->dsp_en), readl(&sysctrl->dsp_pol),
++		 readl(&post->dsp_ctrl));
++	z96a_marker(tag);
++}
++
++void z96a_vop_plane_on(void)
++{
++	struct rk_vop2_priv *priv;
++	struct rk3568_vop_esmart *esmart;
++	struct rk3568_vop_sysctrl *sysctrl;
++
++	if (!z96a_edp_vop_dev)
++		return;
++
++	priv = dev_get_priv(z96a_edp_vop_dev);
++	esmart = priv->regs + VOP2_ESMART_OFFSET(0);
++	sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++	writel(priv->esmart_mst_ctl, &esmart->esmart_region0_mst_ctl);
++	rkvop2_cfg_regdone(sysctrl, priv->vp);
++}
++
++static void rkvop2_mode_set(struct udevice *dev,
++			    const struct display_timing *edid,
++		enum vop_modes mode, int port,
++		struct rkvop2_platdata *platdata)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct rk3568_vop_sysctrl *sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
++	struct rk3568_vop_post *post = priv->regs + VOP2_POST_OFFSET(port);
++	struct rkvop2_driverdata *data =
++		(struct rkvop2_driverdata *)dev_get_driver_data(dev);
++
++	debug("(%s, %s): port addr: 0x%p\n", dev_read_name(dev), __func__, post);
++
++	u32 hactive = edid->hactive.typ;
++	u32 vactive = edid->vactive.typ;
++	u32 hsync_len = edid->hsync_len.typ;
++	u32 hback_porch = edid->hback_porch.typ;
++	u32 vsync_len = edid->vsync_len.typ;
++	u32 vback_porch = edid->vback_porch.typ;
++	u32 hfront_porch = edid->hfront_porch.typ;
++	u32 vfront_porch = edid->vfront_porch.typ;
++	int mode_flags;
++	u32 reg;
++
++	z96a_marker("ms_entry");
++	/*
++	 * Do NOT touch the dsp_pol/dsp_en output registers here.  On RK3568
++	 * they must only be programmed after the eDP link training and video
++	 * configuration have completed; doing it earlier hangs the VOP.
++	 */
++
++	/*
++	 * Live mainline Linux on this exact board drives the same eDP panel
++	 * with VP1 DSP_CTRL out_mode = 0 (P888/RGB888) while the eDP
++	 * controller runs 8 bpc (VIDEO_CTL_2 = 0x10).  The vendor 2017
++	 * U-Boot uses AAAA here, but the working Linux state is the better
++	 * reference for this hardware; a 32-bit AAAA bus into an 8-bpc RGB
++	 * input would misalign the pixel data while leaving sync intact.
++	 */
++	mode_flags = 0;  /* RGB888 */
++	if (mode == VOP_MODE_DP)
++		mode_flags = 15;  /* AAAA */
++	else if ((data->features & VOP_FEATURE_OUTPUT_10BIT) &&
++		 mode == VOP_MODE_HDMI)
++		mode_flags = 15;  /* RGBaaa */
++
++	reg = V_DSP_OUT_MODE(mode_flags);
++
++	debug("(%s, %s): bg_dly: %d\n",
++	      dev_read_name(dev), __func__, platdata->bg_dly[port]);
++
++	if (platdata->bg_dly[port] < 0) {
++		dev_err(dev, "bg_dly is zero for vp%d\n", port);
++		return;
++	}
++
++	writel(((platdata->bg_dly[port] + (hactive >> 1) - 1) << 16) | hsync_len,
++	       &post->prescan_htimings);
++	z96a_marker("ms_prescan");
++
++	writel(V_HSYNC(hsync_len) |
++			V_HORPRD(hsync_len + hback_porch + hactive + hfront_porch),
++			&post->dsp_htotal_hs_end);
++	z96a_marker("ms_htotal");
++
++	writel(V_HEAP(hsync_len + hback_porch + hactive) |
++			V_HASP(hsync_len + hback_porch),
++			&post->dsp_hact_st_end);
++	z96a_marker("ms_hact_st");
++
++	writel(V_VAEP(vsync_len + vback_porch + vactive) |
++			V_VASP(vsync_len + vback_porch),
++			&post->dsp_vact_st_end);
++	z96a_marker("ms_vact_st");
++
++	writel(V_VSYNC(vsync_len) |
++			V_VERPRD(vsync_len + vback_porch + vactive + vfront_porch),
++			&post->dsp_vtotal_vs_end);
++	z96a_marker("ms_vtotal");
++
++	writel(V_HEAP(hsync_len + hback_porch + hactive) |
++			V_HASP(hsync_len + hback_porch),
++			&post->dsp_hact_info);
++	z96a_marker("ms_hact_info");
++
++	writel(V_VAEP(vsync_len + vback_porch + vactive) |
++			V_VASP(vsync_len + vback_porch),
++			&post->dsp_vact_info);
++	z96a_marker("ms_vact_info");
++
++	/* No scaling */
++	writel(0x10001000, &post->scl_factor_yrgb);
++	z96a_marker("ms_scl");
++
++	writel(reg, &post->dsp_ctrl);
++	z96a_marker("ms_ctrl");
++
++	rkvop2_cfg_regdone(sysctrl, port);
++	z96a_marker("ms_done");
++}
++
++/**
++ * rk_display_init() - Try to enable the given display device
++ *
++ * This function performs many steps:
++ * - Finds the display device being referenced by @ep_node
++ * - Puts the VOP's ID into its uclass platform data
++ * - Probes the device to set it up
++ * - Reads the timing information (from EDID or panel)
++ * - Sets up the VOP clocks, etc. for the selected pixel clock and display mode
++ * - Enables the display (the display device handles this and will do different
++ *     things depending on the display type)
++ * - Tells the uclass about the display resolution so that the console will
++ *     appear correctly
++ *
++ * @dev:	VOP device that we want to connect to the display
++ * @fbbase:	Frame buffer address
++ * @vp_node:	Device tree node to process
++ * Return: 0 if OK, -ve if something went wrong
++ */
++static int rk_display_init(struct udevice *dev, ulong fbbase, ofnode vp_node)
++{
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	struct video_priv *uc_priv = dev_get_uclass_priv(dev);
++	struct rkvop2_driverdata *drvdata =
++		(struct rkvop2_driverdata *)dev_get_driver_data(dev);
++	struct rkvop2_platdata *platdata =
++		(struct rkvop2_platdata *)drvdata->platdata;
++	ofnode ep_node;
++	int vop_id, port_id, win_id;
++	struct display_timing timing;
++	struct udevice *disp;
++	int ret;
++	u32 remote_phandle;
++	u32 pin_polarity;
++	struct display_plat *disp_uc_plat;
++	enum video_log2_bpp l2bpp;
++	ofnode remote;
++	const char *compat;
++	char dclk_name[9];
++	struct clk dclk;
++
++	debug("%s(%s, 0x%lx, %s)\n", __func__,
++	      dev_read_name(dev), fbbase, ofnode_get_name(vp_node));
++
++	port_id = ofnode_read_u32_default(vp_node, "reg", -1);
++	if (port_id < 0) {
++		debug("%s(%s): no video port id\n", __func__, dev_read_name(dev));
++		VOP_DIAG(1, port_id);
++		return port_id;
++	}
++	VOP_DIAG(1, 0);
++
++	ep_node = ofnode_first_subnode(vp_node);
++	if (!ofnode_valid(ep_node)) {
++		debug("%s(%s): no valid subnode\n", __func__, dev_read_name(dev));
++		VOP_DIAG(2, -EINVAL);
++		return -EINVAL;
++	}
++	VOP_DIAG(2, 0);
++
++	ret = ofnode_read_u32(ep_node, "remote-endpoint", &remote_phandle);
++	if (ret) {
++		debug("%s(%s): no remote-endpoint\n", __func__, dev_read_name(dev));
++		VOP_DIAG(3, ret);
++		return ret;
++	}
++	VOP_DIAG(3, 0);
++
++	remote = ofnode_get_by_phandle(remote_phandle);
++	if (!ofnode_valid(remote)) {
++		VOP_DIAG(4, -EINVAL);
++		return -EINVAL;
++	}
++	VOP_DIAG(4, 0);
++
++	remote = ofnode_get_parent(remote);
++	if (!ofnode_valid(remote)) {
++		VOP_DIAG(5, -EINVAL);
++		return -EINVAL;
++	}
++	VOP_DIAG(5, 0);
++
++	/*
++	 * The remote-endpoint references into a subnode of the encoder
++	 * (i.e. HDMI, MIPI, etc.) with the DTS looking something like
++	 * the following:
++	 *
++	 * hdmi: hdmi@fe0a0000 {
++	 *   ports {
++	 *     hdmi_in: port {
++	 *       hdmi_in_vp0: endpoint { ... };
++	 *     }
++	 *   }
++	 * }
++	 *
++	 * This isn't any different from how VOP1 works, so we'll adapt
++	 * the same method of finding the display from the original code
++	 * (find the enclosing device of "UCLASS_DISPLAY")
++	 *
++	 * We also look for UCLASS_VIDEO_BRIDGE so we can use the existing
++	 * DW MIPI DSI driver for Rockchip.
++	 */
++	while (ofnode_valid(remote)) {
++		remote = ofnode_get_parent(remote);
++		if (!ofnode_valid(remote)) {
++			debug("%s(%s): no UCLASS_DISPLAY for remote-endpoint\n",
++			      __func__, dev_read_name(dev));
++			VOP_DIAG(6, -EINVAL);
++			return -EINVAL;
++		}
++
++		uclass_find_device_by_ofnode(UCLASS_DISPLAY, remote, &disp);
++		if (disp)
++			break;
++	};
++	if (!disp) {
++		VOP_DIAG(6, -EINVAL);
++		return -EINVAL;
++	}
++	VOP_DIAG(6, 0);
++
++	compat = ofnode_get_property(remote, "compatible", NULL);
++	if (!compat) {
++		debug("%s(%s): Failed to find compatible property\n",
++		      __func__, dev_read_name(dev));
++		VOP_DIAG(7, -EINVAL);
++		return -EINVAL;
++	}
++	VOP_DIAG(7, 0);
++	if (strstr(compat, "edp")) {
++		vop_id = VOP_MODE_EDP;
++	} else if (strstr(compat, "mipi")) {
++		vop_id = VOP_MODE_MIPI;
++	} else if (strstr(compat, "hdmi")) {
++		vop_id = VOP_MODE_HDMI;
++	} else if (strstr(compat, "rk3588-dp")) {
++		vop_id = VOP_MODE_DP;
++	} else if (strstr(compat, "lvds")) {
++		vop_id = VOP_MODE_LVDS;
++	} else {
++		debug("%s(%s): Failed to find vop mode for %s\n",
++		      __func__, dev_read_name(dev), compat);
++		VOP_DIAG(8, -EINVAL);
++		return -EINVAL;
++	}
++	debug("vop_id=%d - port=%d\n", vop_id, port_id);
++	VOP_DIAG(8, 0);
++
++	/* Get the video port clock and enable it */
++	snprintf(dclk_name, sizeof(dclk_name), "dclk_vp%d", port_id);
++	ret = clk_get_by_name(dev, dclk_name, &dclk);
++	if (ret < 0) {
++		VOP_DIAG(9, ret);
++		return ret;
++	}
++	VOP_DIAG(9, 0);
++
++	disp_uc_plat = dev_get_uclass_plat(disp);
++	debug("Found device '%s', disp_uc_priv=%p\n", disp->name, disp_uc_plat);
++	if (display_in_use(disp)) {
++		debug("   - device in use\n");
++		VOP_DIAG(10, -EBUSY);
++		return -EBUSY;
++	}
++	VOP_DIAG(10, 0);
++
++	disp_uc_plat->source_id = vop_id;
++	disp_uc_plat->src_dev = dev;
++
++	ret = device_probe(disp);
++	if (ret) {
++		debug("%s: device '%s' display won't probe (ret=%d)\n",
++		      __func__, dev->name, ret);
++		VOP_DIAG(11, ret);
++		return ret;
++	}
++	VOP_DIAG(11, 0);
++
++	ret = display_read_timing(disp, &timing);
++	if (ret) {
++		debug("%s: Failed to read timings\n", __func__);
++		VOP_DIAG(12, ret);
++		return ret;
++	}
++	VOP_DIAG(12, 0);
++
++	/* Set clock rate on video port to display timings */
++	ret = clk_set_rate(&dclk, timing.pixelclock.typ);
++	if (ret < 0) {
++		dev_err(dev, "Failed to set clock rate: %d\n", ret);
++		VOP_DIAG(13, ret);
++		return ret;
++	}
++	z96a_marker("dclk_set");
++	ret = clk_enable(&dclk);
++	if (ret && ret != -ENOSYS) {
++		dev_err(dev, "Failed to enable dclk: %d\n", ret);
++		VOP_DIAG(13, ret);
++		return ret;
++	}
++	z96a_marker("dclk_enabled");
++	VOP_DIAG(13, 0);
++
++	{
++		struct rk3568_cru *cru = rockchip_get_cru();
++		char tag[64];
++
++		if (cru) {
++			/* Read-only observation: the CRU gate uses a write mask. */
++			snprintf(tag, sizeof(tag), "dclk_gate_%x_sel_%x",
++				 readl(&cru->clkgate_con[20]),
++				 readl(&cru->clksel_con[40]));
++			z96a_marker(tag);
++		}
++	}
++
++	debug("%s(%s): %s clkrate %lu\n", __func__, dev_read_name(dev),
++	      dclk_name, clk_get_rate(&dclk));
++
++	/* Set bitwidth for vop display according to vop mode */
++	switch (vop_id) {
++	case VOP_MODE_EDP:
++	case VOP_MODE_MIPI:
++	case VOP_MODE_HDMI:
++	case VOP_MODE_DP:
++	case VOP_MODE_LVDS:
++		l2bpp = VIDEO_BPP32;
++		break;
++	default:
++		l2bpp = VIDEO_BPP16;
++	}
++
++	/*
++	 * We'll use the default platform-specific win_id from Linux
++	 * so that Linux can take over U-Boot plane when Linux reconfigures
++	 * VOP2.
++	 */
++	win_id = platdata->vp_lyr[port_id];
++	/*
++	 * eDP is wired to VP1 and the U-Boot driver only implements
++	 * ESMART windows.  Use ESMART0 (RK3568 hardware layer 2)
++	 * explicitly; do not trust the ambiguous platdata table.
++	 */
++	if (vop_id == VOP_MODE_EDP && port_id == 1)
++		win_id = 2;
++	if (win_id < 0) {
++		dev_err(dev, "win_id is null, don't setup\n");
++		VOP_DIAG(14, -EINVAL);
++		return -EINVAL;
++	}
++	VOP_DIAG(14, 0);
++	if (platdata->bg_dly[port_id] < 0) {
++		dev_err(dev, "bg_dly is not set for vp%d\n", port_id);
++		VOP_DIAG(15, -EINVAL);
++		return -EINVAL;
++	}
++	VOP_DIAG(15, 0);
++
++	priv->vp = port_id;
++
++	z96a_marker("vop_enable");
++	ret = rkvop2_enable(dev, fbbase, 1 << l2bpp, &timing, port_id, win_id, platdata);
++	if (ret < 0) {
++		z96a_marker("vop_enable_fail");
++		VOP_DIAG(16, ret);
++		return ret;
++	}
++	VOP_DIAG(16, 0);
++	z96a_marker("vop_enabled");
++
++	rkvop2_mode_set(dev, &timing, vop_id, port_id, platdata);
++
++	/*
++	 * Live mainline Linux on this board reports EDP_POL = 0x1 for this
++	 * panel: hsync positive, vsync negative, DE positive and no DCLK
++	 * inversion.  Keep the inherited default inversion for the other
++	 * interfaces, but match the working Linux value for eDP.
++	 */
++	pin_polarity = (vop_id == VOP_MODE_EDP) ? 0 : BIT(DCLK_INVERT);
++	if (timing.flags & DISPLAY_FLAGS_PIXDATA_POSEDGE)
++		pin_polarity &= ~BIT(DCLK_INVERT);
++	if (timing.flags & DISPLAY_FLAGS_HSYNC_HIGH)
++		pin_polarity |= BIT(HSYNC_POSITIVE);
++	if (timing.flags & DISPLAY_FLAGS_VSYNC_HIGH)
++		pin_polarity |= BIT(VSYNC_POSITIVE);
++
++	z96a_edp_vop_dev = dev;
++	z96a_edp_vop_port = port_id;
++	z96a_edp_vop_polarity = pin_polarity;
++
++	z96a_marker("edp_enable");
++	ret = display_enable(disp, 1 << l2bpp, &timing);
++	if (ret) {
++		z96a_marker("edp_enable_fail");
++		VOP_DIAG(17, ret);
++		z96a_edp_vop_dev = NULL;
++		rk_vop2_disable(dev);
++		return ret;
++	}
++	VOP_DIAG(17, 0);
++	z96a_marker("edp_enabled");
++
++	uc_priv->xsize = timing.hactive.typ;
++	uc_priv->ysize = timing.vactive.typ;
++	uc_priv->bpix = l2bpp;
++
++	debug("fb=%lx, size=%d %d\n", fbbase,
++	      uc_priv->xsize, uc_priv->ysize);
++	VOP_DIAG(18, 0);
++
++	return 0;
++}
++
++int rk_vop2_probe(struct udevice *dev)
++{
++	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
++	struct rk_vop2_priv *priv = dev_get_priv(dev);
++	int ret = 0;
++	ofnode port, node;
++
++	/* Before relocation we don't need to do anything */
++	if (!(gd->flags & GD_FLG_RELOC))
++		return 0;
++
++	if (IS_ENABLED(CONFIG_EFI_LOADER)) {
++		debug("Adding to EFI map %d @ %lx\n", plat->size, plat->base);
++		efi_add_memory_map(plat->base, plat->size, EFI_RESERVED_MEMORY_TYPE);
++	}
++
++	priv->regs = dev_read_addr_ptr(dev);
++	priv->vp = -1;
++	priv->layer = -1;
++
++	/* Try all the ports until we find one that works. */
++	port = dev_read_subnode(dev, "ports");
++	if (!ofnode_valid(port)) {
++		debug("%s(%s): 'port' subnode not found\n",
++		      __func__, dev_read_name(dev));
++		return -EINVAL;
++	}
++
++	for (node = ofnode_first_subnode(port);
++			ofnode_valid(node);
++			node = dev_read_next_subnode(node)) {
++		ret = rk_display_init(dev, plat->base, node);
++		if (ret)
++			debug("Device failed: ret=%d\n", ret);
++		if (!ret)
++			break;
++	}
++	video_set_flush_dcache(dev, true);
++
++	return ret;
++}
++
++int rk_vop2_bind(struct udevice *dev)
++{
++	struct video_uc_plat *plat = dev_get_uclass_plat(dev);
++
++	plat->size = 4 * (CONFIG_VIDEO_ROCKCHIP_MAX_XRES *
++			CONFIG_VIDEO_ROCKCHIP_MAX_YRES);
++
++	return 0;
++}
+diff --git a/drivers/video/rockchip/rk_vop2.h b/drivers/video/rockchip/rk_vop2.h
+new file mode 100644
+index 0000000000..a96b5ba2f2
+--- /dev/null
++++ b/drivers/video/rockchip/rk_vop2.h
+@@ -0,0 +1,78 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * Copyright (c) 2017 Theobroma Systems Design und Consulting GmbH
++ */
++
++#ifndef __RK_VOP2_H__
++#define __RK_VOP2_H__
++
++#include <asm/arch-rockchip/vop_rk3568.h>
++
++struct rk_vop2_priv {
++	void *grf;
++	void *regs;
++	int vp;
++	int layer;
++	u32 esmart_mst_ctl;
++};
++
++enum vop2_features {
++	VOP_FEATURE_OUTPUT_10BIT = (1 << 0),
++};
++
++enum vop2_layer {
++	ROCKCHIP_VOP2_CLUSTER0 = 0,
++	ROCKCHIP_VOP2_CLUSTER1,
++	ROCKCHIP_VOP2_CLUSTER2,
++	ROCKCHIP_VOP2_CLUSTER3,
++	ROCKCHIP_VOP2_ESMART0,
++	ROCKCHIP_VOP2_ESMART1,
++	ROCKCHIP_VOP2_ESMART2,
++	ROCKCHIP_VOP2_ESMART3,
++	ROCKCHIP_VOP2_SMART0 = 6,
++	ROCKCHIP_VOP2_SMART1,
++	ROCKCHIP_VOP2_RESERVED = -1,
++};
++
++struct rkvop2_platdata {
++	const u8 delay;
++	const s8 bg_dly[4]; /* VOP2 supports up to 4 video ports (0-3) */
++	const s8 vp_lyr[4];
++	const s8 layers[8];
++};
++
++struct rkvop2_driverdata {
++	/* configuration */
++	u32 features;
++	void *platdata;
++	/* block-specific setters/getters */
++	void (*enable_output)(struct udevice *dev, enum vop_modes mode, u32 port);
++	void (*set_pin_polarity)(struct udevice *dev, enum vop_modes mode, u32 port);
++};
++
++/**
++ * rk_vop2_probe() - common probe implementation
++ *
++ * Performs the rk_display_init on each port-subnode until finding a
++ * working port (or returning an error if none of the ports could be
++ * successfully initialised).
++ *
++ * @dev:	device
++ * Return: 0 if OK, -ve if something went wrong
++ */
++int rk_vop2_probe(struct udevice *dev);
++void rk_vop2_disable(struct udevice *dev);
++
++/**
++ * rk_vop2_bind() - common bind implementation
++ *
++ * Sets the plat->size field to the amount of memory to be reserved for
++ * the framebuffer: this is always
++ *     (32 BPP) x VIDEO_ROCKCHIP_MAX_XRES x VIDEO_ROCKCHIP_MAX_YRES
++ *
++ * @dev:	device
++ * Return: 0 (always OK)
++ */
++int rk_vop2_bind(struct udevice *dev);
++
++#endif
+diff --git a/drivers/video/simple_panel.c b/drivers/video/simple_panel.c
+index 0f23df701b..7fe5b6912f 100644
+--- a/drivers/video/simple_panel.c
++++ b/drivers/video/simple_panel.c
+@@ -16,6 +16,20 @@
+ 
+ #define EDID_I2C_ADDR	0x50
+ 
++/* Temporary RAM-test diagnostics, defined in z96a_rk3568/board.c */
++extern int z96a_diag_panel_stage;
++extern int z96a_diag_panel_ret;
++extern int z96a_diag_panel_timing_ret;
++extern int z96a_diag_panel_timing_off;
++extern int z96a_diag_panel_timing_node;
++
++#define PANEL_DIAG(stage, err) do { \
++	if ((stage) >= z96a_diag_panel_stage) { \
++		z96a_diag_panel_stage = (stage); \
++		z96a_diag_panel_ret = (err); \
++	} \
++} while (0)
++
+ struct simple_panel_priv {
+ 	struct udevice *reg;
+ 	struct udevice *backlight;
+@@ -111,8 +125,13 @@ static int simple_panel_get_display_timing(struct udevice *dev,
+ 	int ret;
+ 
+ 	/* Check for timing subnode if panel node first */
++	z96a_diag_panel_timing_off = dev_of_offset(dev);
++	z96a_diag_panel_timing_node =
++		fdt_subnode_offset(blob, z96a_diag_panel_timing_off,
++				   "display-timings");
+ 	ret = fdtdec_decode_display_timing(blob, dev_of_offset(dev),
+ 					   0, timings);
++	z96a_diag_panel_timing_ret = ret;
+ 	if (!ret)
+ 		return ret;
+ 
+@@ -124,33 +143,44 @@ static int simple_panel_of_to_plat(struct udevice *dev)
+ 	struct simple_panel_priv *priv = dev_get_priv(dev);
+ 	int ret;
+ 
++	PANEL_DIAG(1, 0);
++
+ 	if (CONFIG_IS_ENABLED(DM_REGULATOR)) {
+ 		ret = uclass_get_device_by_phandle(UCLASS_REGULATOR, dev,
+ 						   "power-supply", &priv->reg);
+ 		if (ret) {
+ 			debug("%s: Warning: cannot get power supply: ret=%d\n",
+ 			      __func__, ret);
+-			if (ret != -ENOENT)
++			if (ret != -ENOENT) {
++				PANEL_DIAG(2, ret);
+ 				return ret;
++			}
+ 		}
+ 	}
++	PANEL_DIAG(2, 0);
+ 
+ 	ret = uclass_get_device_by_phandle(UCLASS_PANEL_BACKLIGHT, dev,
+ 						   "backlight", &priv->backlight);
+ 	if (ret) {
+ 		debug("%s: Cannot get backlight: ret=%d\n", __func__, ret);
+-		if (ret != -ENOENT)
++		if (ret != -ENOENT) {
++			PANEL_DIAG(3, ret);
+ 			return log_ret(ret);
++		}
+ 	}
++	PANEL_DIAG(3, 0);
+ 
+ 	ret = gpio_request_by_name(dev, "enable-gpios", 0, &priv->enable,
+ 				   GPIOD_IS_OUT);
+ 	if (ret) {
+ 		debug("%s: Warning: cannot get enable GPIO: ret=%d\n",
+ 		      __func__, ret);
+-		if (ret != -ENOENT)
++		if (ret != -ENOENT) {
++			PANEL_DIAG(4, ret);
+ 			return log_ret(ret);
++		}
+ 	}
++	PANEL_DIAG(4, 0);
+ 
+ 	return 0;
+ }
+@@ -163,16 +193,22 @@ static int simple_panel_probe(struct udevice *dev)
+ 		(struct mipi_dsi_panel_plat *)dev_get_driver_data(dev);
+ 	int ret;
+ 
++	PANEL_DIAG(5, 0);
++
+ 	ret = regulator_set_enable_if_allowed(priv->reg, true);
+ 	if (ret && ret != -ENOSYS) {
+ 		debug("%s: failed to enable regulator '%s' %d\n",
+ 		      __func__, priv->reg->name, ret);
++		PANEL_DIAG(6, ret);
+ 		return ret;
+ 	}
++	PANEL_DIAG(6, 0);
+ 
+ 	if (dsi_data)
+ 		memcpy(plat, dsi_data, sizeof(struct mipi_dsi_panel_plat));
+ 
++	PANEL_DIAG(7, 0);
++
+ 	return 0;
+ }
+ 
+diff --git a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2-u-boot.dtsi b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2-u-boot.dtsi
+index 81470055ca..84e94ee13b 100644
+--- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2-u-boot.dtsi
++++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2-u-boot.dtsi
+@@ -23,3 +23,12 @@
+ &vcca_1v8 {
+ 	bootph-all;
+ };
++
++/*
++ * The SoC rk356x-u-boot.dtsi sets max-frequency = <200000000> on the eMMC
++ * controller after the board DTS.  Override it here: this board's eMMC is
++ * only reliable at 50MHz (HS400 writes fail; HS200/50MHz is stable).
++ */
++&sdhci {
++	max-frequency = <50000000>;
++};
+diff --git a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+index a0ca9ef97f..5477f0e1d7 100644
+--- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
++++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+@@ -12,6 +12,7 @@
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/input/input.h>
+ #include <dt-bindings/pinctrl/rockchip.h>
++#include <dt-bindings/soc/rockchip,vop2.h>
+ #include "rk3568.dtsi"
+ 
+ / {
+@@ -118,6 +119,56 @@
+ 			bootph-all;
+ 		};
+ 	};
++
++	/*
++	 * eDP panel power/backlight.  These nodes are only probed from
++	 * z96a-logo after the USB scan has returned; they are not part of
++	 * the USB boot path.
++	 */
++	backlight: backlight {
++		compatible = "pwm-backlight";
++		/* RAM test: roughly 50% duty for PWM counter/pad sampling. */
++		default-brightness-level = <128>;
++		enable-gpios = <&gpio2 RK_PD5 GPIO_ACTIVE_HIGH>;
++		pwms = <&pwm9 0 25000 0>;
++	};
++
++	panel: panel {
++		compatible = "simple-panel";
++		backlight = <&backlight>;
++		power-supply = <&vcc3v3_lcd0_n>;
++
++		display-timings {
++			native-mode = <&panel_timing>;
++
++			panel_timing: timing0 {
++				clock-frequency = <140240000>;
++				hactive = <1920>;
++				vactive = <1080>;
++				hfront-porch = <48>;
++				hsync-len = <32>;
++				hback-porch = <124>;
++				vfront-porch = <3>;
++				vsync-len = <6>;
++				vback-porch = <11>;
++				hsync-active = <1>;
++				vsync-active = <0>;
++				de-active = <1>;
++				pixelclk-active = <0>;
++			};
++		};
++	};
++
++	vcc3v3_lcd0_n: regulator-vcc3v3-lcd0-n {
++		compatible = "regulator-fixed";
++		enable-active-high;
++		gpio = <&gpio0 RK_PC7 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&vcc3v3_lcd0_n_en>;
++		regulator-name = "vcc3v3_lcd0_n";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++	};
+ };
+ 
+ &uart2 {
+@@ -128,7 +179,7 @@
+ &sdhci {
+ 	bus-width = <8>;
+ 	cap-mmc-highspeed;
+-	mmc-hs200-1_8v;
++	max-frequency = <50000000>;
+ 	non-removable;
+ 	status = "okay";
+ };
+@@ -168,19 +219,16 @@
+ 	status = "okay";
+ };
+ 
+-/* Deployed 2026.01 image also enables the USB2 EHCI host controllers and
+- * usb2phy1 OTG port (USB2 keyboard / low-speed devices on the Type-A ports).
+- * Keep them enabled so a rebuilt U-Boot is behaviourally identical.
+- */
+-&usb2phy1_otg {
++/* The Z96A USB2 ports are wired to the EHCI controllers, not DWC3. */
++&usb_host0_ehci {
+ 	status = "okay";
+ };
+ 
+-&usb_host0_ehci {
++&usb_host1_ehci {
+ 	status = "okay";
+ };
+ 
+-&usb_host1_ehci {
++&usb2phy1_otg {
+ 	status = "okay";
+ };
+ 
+@@ -199,3 +247,54 @@
+ &usb2phy1_host {
+ 	status = "okay";
+ };
++
++/*
++ * eDP / VOP2 logo path.
++ *
++ * The VOP2 node stays disabled in the live DT.  z96a-logo binds it manually
++ * after the USB-only scan has returned, so a USB boot never probes the
++ * display controllers.
++ */
++&edp_phy {
++	status = "okay";
++};
++
++&edp {
++	status = "okay";
++	force-hpd;
++	bpc = <8>;
++	rockchip,panel = <&panel>;
++};
++
++&edp_in {
++	edp_in_vp1: endpoint {
++		remote-endpoint = <&vp1_out_edp>;
++	};
++};
++
++&vp1 {
++	vp1_out_edp: endpoint@3 {
++		reg = <ROCKCHIP_VOP2_EP_EDP0>;
++		remote-endpoint = <&edp_in_vp1>;
++	};
++};
++
++&pwm9 {
++	status = "okay";
++};
++
++&vop {
++	status = "disabled";
++
++	assigned-clocks = <&cru DCLK_VOP1>, <&cru PLL_VPLL>;
++	assigned-clock-rates = <140240000>, <701200000>;
++	assigned-clock-parents = <&cru PLL_VPLL>;
++};
++
++&pinctrl {
++	display {
++		vcc3v3_lcd0_n_en: vcc3v3-lcd0-n-en {
++			rockchip,pins = <0 RK_PC7 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++};
+diff --git a/dts/upstream/src/arm64/rockchip/rk3568.dtsi b/dts/upstream/src/arm64/rockchip/rk3568.dtsi
+index e719a3df12..950459d5a0 100644
+--- a/dts/upstream/src/arm64/rockchip/rk3568.dtsi
++++ b/dts/upstream/src/arm64/rockchip/rk3568.dtsi
+@@ -130,6 +130,20 @@
+ 		reg = <0x0 0xfe190200 0x0 0x20>;
+ 	};
+ 
++	edp_phy_grf: syscon@fdcb0000 {
++		compatible = "rockchip,rk3568-edp-phy-grf", "syscon", "simple-mfd";
++		reg = <0x0 0xfdcb0000 0x0 0x100>;
++
++		edp_phy: edp-phy {
++			compatible = "rockchip,rk3568-edp-phy";
++			clocks = <&pmucru XIN_OSC0_EDPPHY_G>,
++				 <&cru PCLK_EDPPHY_GRF>;
++			clock-names = "refclk", "pclk";
++			#phy-cells = <0>;
++			status = "disabled";
++		};
++	};
++
+ 	pcie30_phy_grf: syscon@fdcb8000 {
+ 		compatible = "rockchip,rk3568-pcie3-phy-grf", "syscon";
+ 		reg = <0x0 0xfdcb8000 0x0 0x10000>;
+@@ -148,6 +162,35 @@
+ 		status = "disabled";
+ 	};
+ 
++	edp: edp@fe0c0000 {
++		compatible = "rockchip,rk3568-edp";
++		reg = <0x0 0xfe0c0000 0x0 0x10000>;
++		interrupts = <GIC_SPI 18 IRQ_TYPE_LEVEL_HIGH>;
++		clocks = <&cru CLK_EDP_200M>, <&cru PCLK_EDP_CTRL>,
++			 <&cru HCLK_VO>;
++		clock-names = "dp", "pclk", "hclk";
++		phys = <&edp_phy>;
++		phy-names = "dp";
++		power-domains = <&power RK3568_PD_VO>;
++		resets = <&cru SRST_EDP_24M>, <&cru SRST_P_EDP_CTRL>;
++		reset-names = "dp", "apb";
++		rockchip,grf = <&grf>;
++		status = "disabled";
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			edp_in: port@0 {
++				reg = <0>;
++			};
++
++			edp_out: port@1 {
++				reg = <1>;
++			};
++		};
++	};
++
+ 	pcie3x1: pcie@fe270000 {
+ 		compatible = "rockchip,rk3568-pcie";
+ 		#address-cells = <3>;
+diff --git a/include/configs/z96a_rk3568.h b/include/configs/z96a_rk3568.h
+index 5efddacb7a..b2b8fed5e0 100644
+--- a/include/configs/z96a_rk3568.h
++++ b/include/configs/z96a_rk3568.h
+@@ -8,9 +8,37 @@
+ 
+ #ifndef __Z96A_RK3568_H
+ #define __Z96A_RK3568_H
+-
+-/* Prefer USB mass storage, then eMMC/SD, then network. */
++/* Prefer USB mass storage while retaining eMMC and normal fallbacks. */
++#if CONFIG_IS_ENABLED(CMD_NET)
+ #define BOOT_TARGETS "usb mmc1 mmc0 nvme scsi pxe dhcp spi"
++#else
++#define BOOT_TARGETS "usb mmc1 mmc0"
++#endif
++
++/*
++ * Display commands are compile-time opt-in.  The production default is
++ * display-off: no VOP2 probe, no test patterns, no FAT writes, no extra
++ * delay before the USB-first boot scan.
++ */
++#if CONFIG_IS_ENABLED(Z96A_EDP_LOGO)
++#define Z96A_LOGO_CMDS "z96a_logo;"
++#else
++#define Z96A_LOGO_CMDS ""
++#endif
++
++/*
++ * RAM-test diagnostics additionally force the eMMC fallback targets so a
++ * chainloaded test image always returns to the installed Linux.
++ */
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++#define Z96A_DIAG_CMDS \
++	"fatwrite usb 0:1 ${z96a_status_addr} z96a-logo-status.txt ${z96a_status_len};" \
++	"z96a_visual_window;" \
++	"setenv boot_targets mmc1 mmc0;"
++#else
++#define Z96A_DIAG_CMDS ""
++#endif
++
+ 
+ #define ROCKCHIP_DEVICE_SETTINGS \
+ 			"stdout=serial\0" \
+@@ -18,4 +46,26 @@
+ 
+ #include <configs/rk3568_common.h>
+ 
++/*
++ * DIAG builds need USB up before the logo: the raw-USB logo blit and the
++ * status fatwrite both target the USB FAT.  Production runs the logo
++ * straight off eMMC, so USB enumeration moves after the first frame and
++ * no longer delays it.
++ */
++#if CONFIG_IS_ENABLED(Z96A_DISPLAY_DIAG)
++#define Z96A_USB_PRE_CMDS "usb start;"
++#else
++#define Z96A_USB_PRE_CMDS ""
++#endif
++
++/* Power the USB ports before Standard Boot scans the USB targets. */
++#undef CONFIG_BOOTCOMMAND
++#define CONFIG_BOOTCOMMAND \
++	"gpio s A6;gpio s E11;gpio s E9;gpio s C31;gpio s A27;" \
++	Z96A_USB_PRE_CMDS \
++	Z96A_LOGO_CMDS \
++	Z96A_DIAG_CMDS \
++	"usb start;" \
++	"bootflow scan -lb"
++
+ #endif
+diff --git a/include/phy-dp.h b/include/phy-dp.h
+new file mode 100644
+index 0000000000..371e939fc8
+--- /dev/null
++++ b/include/phy-dp.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++/*
++ * DisplayPort/eDP PHY configuration options.
++ *
++ * U-Boot's generic PHY API passes an opaque pointer to .configure().  This
++ * structure is the eDP-specific payload used by the RK3568 Naneng eDP PHY
++ * and the RK3568 eDP controller.
++ */
++
++#ifndef __PHY_DP_H__
++#define __PHY_DP_H__
++
++#include <linux/types.h>
++
++struct phy_configure_opts_dp {
++	/* Link rate in 100 Mbps units: 1620 = 1.62 Gbps, 2700 = 2.7 Gbps */
++	u32 link_rate;
++	/* Number of lanes: 1, 2 or 4 */
++	u32 lanes;
++	/* Per-lane voltage swing and pre-emphasis levels (0..3) */
++	u8 voltage[4];
++	u8 pre[4];
++	bool set_rate;
++	bool set_lanes;
++	bool set_voltages;
++	bool ssc;
++};
++
++#endif /* __PHY_DP_H__ */

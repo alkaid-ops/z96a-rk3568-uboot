@@ -1,0 +1,19 @@
+
+/home/hsy/project/rea-z97a/artifacts/vendor-uboot/uboot-2017.bin：     文件格式 binary
+
+
+Disassembly of section .data:
+
+0000000000a03f40 <.data+0x3f40>:
+  a03f40:	d0000700 	adrp	x0, 0xae5000
+  a03f44:	9131e021 	add	x1, x1, #0xc78
+  a03f48:	911aa800 	add	x0, x0, #0x6aa
+  a03f4c:	9402d366 	bl	0xab8ce4
+  a03f50:	97fffea5 	bl	0xa039e4
+  a03f54:	97fffc44 	bl	0xa03064
+  a03f58:	9401e19f 	bl	0xa7c5d4
+  a03f5c:	940139ed 	bl	0xa52710
+  a03f60:	97fffdb5 	bl	0xa03634
+  a03f64:	f9400640 	ldr	x0, [x18, #8]
+  a03f68:	37880960 	tbnz	w0, #17, 0xa04094
+  a03f6c:	d0000700 	adrp	x0, 0xae5000

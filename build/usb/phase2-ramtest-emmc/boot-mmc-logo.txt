@@ -1,0 +1,12 @@
+usb start
+if load usb 0:1 0x00800000 u-boot-fit-dtb-mmc.bin; then
+  if load usb 0:1 0x10000000 z96a_chainload.bin; then
+    if fatload usb 0:1 0x11000000 extlinux/extlinux.conf.z96a-bak; then
+      if fatwrite usb 0:1 0x11000000 extlinux/extlinux.conf ${filesize}; then
+        if fatrm usb 0:1 boot.scr; then
+          go 0x10000000
+        fi
+      fi
+    fi
+  fi
+fi

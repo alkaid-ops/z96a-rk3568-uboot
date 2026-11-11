@@ -1,0 +1,37 @@
+Z96A RK3568 fitfix-v2 刷写说明, 2026-11-12
+
+文件与校验:
+  u-boot.itb   1288192 字节  sha256 9e523af1b197451d7b8197dae7f701dcce91678de4a216b214b6acbe62efb838
+
+目标:
+  eMMC sector 0x4000 (16384, 8 MiB 处)
+  idbloader (sector 0x40, sha256 35c368f3...) 保持不动
+  GPT / parameter / 分区表 一律不写
+
+Windows RKDevTool (maskrom):
+  1. 设备进 maskrom，打开 RKDevTool v3.37。
+  2. 高级功能: 选择 MiniLoaderAll.bin，点“下载”，RAM 地址 0xCCCCCCCC
+     (只加载到 RAM，不写 flash)。
+  3. 下载镜像: 清空表格，只加一行
+       eMMC / 地址 0x4000 / 路径 u-boot.itb
+     勾选“强制按地址写”，点“执行”。
+  4. 重启。
+
+预期:
+  - 上电后屏幕全黑（背光故意不开）。
+  - 约 2 s 电源灯亮。
+  - ≤3 s 屏幕亮起，第一帧直接是 LOGO，无白屏/彩条过渡。
+  - 之后 USB 优先启动；无 U 盘时回退 eMMC。
+
+回滚（若不能启动）:
+  - 再次进 maskrom，加载 MiniLoaderAll.bin。
+  - 写 build/recovery-20261111/u-boot-p1.itb (1221120 字节,
+    sha256 3dd682033885ed88c3c95fa02d152747bf577fadfd678372f59304dcc7f215ea)
+    到地址 0x4000，勾选“强制按地址写”。
+  - idbloader 不需要回滚（本次未修改）。
+
+注意:
+  - bootdelay=0 后 U-Boot 阶段无法按键打断进 shell；USB 启动、
+    eMMC 回退和 maskrom 恢复均不受影响。
+  - 手工 FIT 模板 z96a-uboot.its 中的 atf-1 entry=<0x00040000> 与
+    u-boot os="u-boot" 是必需属性，重新打包时必须保留并用 dtc 核对。
