@@ -1,0 +1,61 @@
+From 87504bb96aa9e983cd624a0ea560b39559a53041 Mon Sep 17 00:00:00 2001
+From: z96a <z96a@local>
+Date: Tue, 10 Nov 2026 18:10:16 +0800
+Subject: [PATCH 1/5] z96a: apply deployed-build patch set (usb-first,
+ combphy1, bootstd)
+
+---
+ configs/z96a-rk3568-laptop-v2_defconfig                   | 8 ++++++++
+ dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts | 8 ++++++++
+ include/configs/z96a_rk3568.h                             | 3 +++
+ 3 files changed, 19 insertions(+)
+
+diff --git a/configs/z96a-rk3568-laptop-v2_defconfig b/configs/z96a-rk3568-laptop-v2_defconfig
+index 34d95a8831..615fbe13ac 100644
+--- a/configs/z96a-rk3568-laptop-v2_defconfig
++++ b/configs/z96a-rk3568-laptop-v2_defconfig
+@@ -120,3 +120,11 @@ CONFIG_SPL_ADC=y
+ CONFIG_DM_RNG=y
+ CONFIG_RNG_ROCKCHIP=y
+ CONFIG_CMD_KASLRSEED=y
++CONFIG_BOOTSTD=y
++CONFIG_BOOTSTD_FULL=y
++CONFIG_BOOTSTD_DEFAULTS=y
++CONFIG_BOOTMETH_EXTLINUX=y
++CONFIG_BOOTMETH_SCRIPT=y
++CONFIG_USB_STORAGE=y
++CONFIG_USB_KEYBOARD=y
++
+diff --git a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+index 34e484b7b5..dce5620b24 100644
+--- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
++++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+@@ -121,6 +121,14 @@
+ 	bootph-all;
+ };
+ 
++/* The Z96A USB 3.0 Type-A port is wired to usb_host1_xhci and needs
++ * combphy1 initialized before DWC3 host probing. The upstream U-Boot DTS
++ * leaves combphy1 disabled, which prevents USB mass-storage enumeration.
++ */
++&combphy1 {
++	status = "okay";
++};
++
+ &usb_host0_xhci {
+ 	status = "okay";
+ };
+diff --git a/include/configs/z96a_rk3568.h b/include/configs/z96a_rk3568.h
+index c48e8d475c..5efddacb7a 100644
+--- a/include/configs/z96a_rk3568.h
++++ b/include/configs/z96a_rk3568.h
+@@ -9,6 +9,9 @@
+ #ifndef __Z96A_RK3568_H
+ #define __Z96A_RK3568_H
+ 
++/* Prefer USB mass storage, then eMMC/SD, then network. */
++#define BOOT_TARGETS "usb mmc1 mmc0 nvme scsi pxe dhcp spi"
++
+ #define ROCKCHIP_DEVICE_SETTINGS \
+ 			"stdout=serial\0" \
+ 			"stderr=serial\0"

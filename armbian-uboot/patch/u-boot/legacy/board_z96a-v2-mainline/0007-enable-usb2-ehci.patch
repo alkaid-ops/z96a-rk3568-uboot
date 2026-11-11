@@ -1,0 +1,22 @@
+--- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
++++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+@@ -129,6 +129,19 @@
+ 	status = "okay";
+ };
+ 
++/* The Z96A USB2 ports are wired to the EHCI controllers, not DWC3. */
++&usb_host0_ehci {
++	status = "okay";
++};
++
++&usb_host1_ehci {
++	status = "okay";
++};
++
++&usb2phy1_otg {
++	status = "okay";
++};
++
+ &usb2phy0 {
+ 	status = "okay";
+ };

@@ -1,0 +1,15 @@
+diff --git a/include/configs/z96a_rk3568.h b/include/configs/z96a_rk3568.h
+index 5903068..09b5353 100644
+--- a/include/configs/z96a_rk3568.h
++++ b/include/configs/z96a_rk3568.h
+@@ -21,8 +21,7 @@
+ /* Power the USB ports before Standard Boot scans the USB targets. */
+ #undef CONFIG_BOOTCOMMAND
+ #define CONFIG_BOOTCOMMAND \
+-	"gpio set A6; gpio set E11; gpio set E9; gpio set C31; " \
+-	"usb start; " \
+-	"bootflow scan -lb"
++	"gpio s A6;gpio s E11;gpio s E9;gpio s C31;gpio s A27;" \
++	"usb start;bootflow scan -lb  "
+ 
+ #endif

@@ -1,0 +1,14 @@
+--- a/include/configs/z96a_rk3568.h
++++ b/include/configs/z96a_rk3568.h
+@@ -18,4 +18,11 @@
+ 
+ #include <configs/rk3568_common.h>
+ 
++/* Power the USB ports before Standard Boot scans the USB targets. */
++#undef CONFIG_BOOTCOMMAND
++#define CONFIG_BOOTCOMMAND \
++	"gpio set A6; gpio set E11; gpio set E9; gpio set C31; " \
++	"usb start; " \
++	"bootflow scan -lb"
++
+ #endif

@@ -1,0 +1,31 @@
+008bba3e z96a-pwr: i2c bus '%s' unavailable (%d)
+
+  xref 008042e0 FUN_00804284 @ 00804284
+008bba67 z96a-pwr: SC8886@0x6b not found (%d)
+
+  xref 00804320 FUN_00804284 @ 00804284
+008bba8d z96a-pwr: SC8886 read failed; skipping power-source selection
+
+  xref 00804344 FUN_00804284 @ 00804284
+008bbacc z96a-pwr: SC8886 AC=%d BAT_REMOV=%d BAT=%dmV
+
+  xref 008043c8 FUN_00804284 @ 00804284
+008bbb0f z96a-pwr: source=USB-C, charge current 1024 mA
+
+  xref 00804440 FUN_00804284 @ 00804284
+008bbb47 z96a-pwr: source=battery (%dmV)
+
+  xref 00804494 FUN_00804284 @ 00804284
+008bbb6d z96a-pwr: NO usable power (AC=0 BAT_REMOV=%d BAT=%dmV)
+
+  xref 008044c8 FUN_00804284 @ 00804284
+function 00804284 FUN_00804284
+  caller 008036c4 FUN_008036c4
+  callee 00871868 FUN_00871868
+  callee 0083d930 FUN_0083d930
+  callee 0089e7e8 FUN_0089e7e8
+  callee 008040d0 FUN_008040d0
+  callee 0083c748 FUN_0083c748
+  callee 00844078 FUN_00844078
+  callee 00843ee0 FUN_00843ee0
+  callee 00804108 FUN_00804108

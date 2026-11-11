@@ -1,0 +1,12 @@
+--- a/include/configs/z96a_rk3568.h
++++ b/include/configs/z96a_rk3568.h
+@@ -8,6 +8,9 @@
+ 
+ #ifndef __Z96A_RK3568_H
+ #define __Z96A_RK3568_H
++/* Prefer USB mass storage while retaining eMMC and normal fallbacks. */
++#define BOOT_TARGETS "usb mmc1 mmc0 nvme scsi pxe dhcp spi"
++
+ 
+ #define ROCKCHIP_DEVICE_SETTINGS \
+ 			"stdout=serial\0" \

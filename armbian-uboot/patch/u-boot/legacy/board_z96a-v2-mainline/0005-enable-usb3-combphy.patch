@@ -1,0 +1,17 @@
+--- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
++++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+@@ -121,6 +121,14 @@
+ 	bootph-all;
+ };
+ 
++/* The Z96A USB 3.0 Type-A port is wired to usb_host1_xhci and needs
++ * combphy1 initialized before DWC3 host probing. The upstream U-Boot DTS
++ * leaves combphy1 disabled, which prevents USB mass-storage enumeration.
++ */
++&combphy1 {
++	status = "okay";
++};
++
+ &usb_host0_xhci {
+ 	status = "okay";
+ };

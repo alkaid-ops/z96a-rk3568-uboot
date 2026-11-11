@@ -1,0 +1,1474 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Device Tree for RK3566 LB2004 - ported to kemp233/linux-rockchip rk-6.1-rkr6.1
+ *
+ * Originally written for unifreq/linux-6.1.y-rockchip (kemp233-amlogic-s9xxx-armbian
+ * compile-kernel workflow). The two BSP-6.1 forks differ slightly in label naming
+ * and node presence; this port wraps the labels that don't exist in
+ * kemp233/linux-rockchip rk-6.1-rkr6.1 in #if 0 blocks. To enable them, switch
+ * KERNELSOURCE to a BSP tree that has pcie30phy/pcie3x2/vp[0-2] (e.g. unifreq)
+ * and remove the #if 0 / #endif.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/soc/rockchip,vop2.h>
+#include "rk3566.dtsi"
+
+/ {
+	model = "Rockchip RK3566 LB2004 EVALUATION";
+	compatible = "rockchip,rk3566-evb2-lp4x-v10", "rockchip,rk3566";
+
+	aliases {
+		ethernet0 = &gmac1;
+		mmc0 = &sdhci;
+		mmc1 = &sdmmc1;
+		mmc2 = &sdmmc0;
+		serial2 = &uart2;
+	};
+
+	chosen: chosen {
+		stdout-path = "serial2:1500000n8";
+	};
+
+	reserved_memory: reserved-memory {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			size = <0x0 0x800000>;
+			alloc-ranges = <0x0 0x10000000 0x0 0x800000>;
+			linux,cma-default;
+		};
+
+		/* 128MB DMA pool for NPU - reserved_memory node, valid in both forks */
+		rknpu_mem: rknpu {
+			compatible = "shared-dma-pool";
+			inactive;
+			reusable;
+			size = <0x0 0x08000000>;
+			alignment = <0x0 0x1000>;
+		};
+
+		ramoops: ramoops@110000 {
+			compatible = "ramoops";
+			reg = <0x0 0x110000 0x0 0xf0000>;
+			record-size = <0x20000>;
+			console-size = <0x80000>;
+			ftrace-size = <0x00000>;
+			pmsg-size = <0x50000>;
+		};
+	};
+
+	/* HDMI connector - kept for compatibility; remote-endpoint omitted
+	 * because rk-6.1-rkr6.1 dtsi lacks &hdmi_out label. */
+	hdmi-con {
+		compatible = "hdmi-connector";
+		type = "a";
+
+		port {
+			hdmi_con_in: endpoint {
+				/* remote-endpoint = <&hdmi_out_con>; BSP-specific */
+			};
+		};
+	};
+
+	/* External 125MHz clock for GMAC1 */
+	gmac1_clkin: external-gmac1-clock {
+		compatible = "fixed-clock";
+		clock-frequency = <125000000>;
+		clock-output-names = "gmac1_clkin";
+		#clock-cells = <0>;
+	};
+
+	/* Power regulators */
+	dc_12v: dc-12v {
+		compatible = "regulator-fixed";
+		regulator-name = "dc_12v";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <12000000>;
+		regulator-max-microvolt = <12000000>;
+	};
+
+	vcc5v0_sys: vcc5v0-sys {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc5v0_sys";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&dc_12v>;
+	};
+
+	vcc5v0_host: vcc5v0-host {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc5v0_host_en>;
+		regulator-name = "vcc5v0_host";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	vcc5v0_usb: vcc5v0-usb {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio3 RK_PB3 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc5v0_usb_en>;
+		regulator-name = "vcc5v0_usb";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	vcc5v0_otg: vcc5v0-otg {
+		compatible = "regulator-fixed";
+		enable-active-high;
+		gpio = <&gpio0 RK_PC4 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&vcc5v0_otg_en>;
+		regulator-name = "vcc5v0_otg";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+
+	pcie_pwr: pcie-pwr {
+		compatible = "regulator-fixed";
+		regulator-name = "pcie_pwr";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+	};
+
+	/* Audio */
+	/* HDMI sound: i2s0 -> internal dw-hdmi transmitter (digital route,
+	 * no external pins - see &i2s0_8ch).  This is the only consumer of
+	 * i2s0 on this board. */
+	rk809_sound: rk809-sound {
+		compatible = "simple-audio-card";
+		simple-audio-card,format = "i2s";
+		simple-audio-card,mclk-fs = <256>;
+		simple-audio-card,name = "rockchip,rk809-codec";
+
+		simple-audio-card,cpu {
+			sound-dai = <&i2s1_8ch>;
+		};
+		simple-audio-card,codec {
+			sound-dai = <&rk809_codec>;
+		};
+	};
+
+	/* SDIO WiFi power sequencing */
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		clocks = <&rk809 1>;
+		clock-names = "ext_clock";
+		post-power-on-delay-ms = <200>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_enable_h>;
+		reset-gpios = <&gpio3 RK_PA1 GPIO_ACTIVE_LOW>;
+	};
+
+	/* Wireless */
+	wireless_wlan: wireless-wlan {
+		compatible = "wlan-platdata";
+		rockchip,grf = <&grf>;
+		wifi_chip_type = "ap6212";
+		sdio_vref = <1800>;
+		WIFI,host_wake_irq = <&gpio3 RK_PA2 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+
+	wireless_bluetooth: wireless-bluetooth {
+		compatible = "bluetooth-platdata";
+		clocks = <&rk809 1>;
+		clock-names = "ext_clock";
+		uart_rts_gpios = <&gpio3 RK_PB5 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default", "rts_gpio";
+		pinctrl-0 = <&uart1m0_rtsn>;
+		pinctrl-1 = <&bt_rst_gpio>;
+		BT,reset_gpio = <&gpio2 RK_PB7 GPIO_ACTIVE_HIGH>;
+		BT,wake_gpio = <&gpio2 RK_PC1 GPIO_ACTIVE_HIGH>;
+		BT,wake_host_irq = <&gpio2 RK_PC0 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
+};
+
+/* Serial console */
+&uart2 {
+	status = "okay";
+};
+
+/* Bluetooth UART */
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1m0_xfer &uart1m0_ctsn>;
+	status = "okay";
+};
+
+/* GMAC1 Ethernet - wired NIC (RTL8211F / MAE0621A-Q2C at mdio address 0).
+ *
+ * This block now matches the factory configuration exactly, which is what
+ * makes the MAC come up at all. Two properties were wrong and together they
+ * kept the NIC completely dead:
+ *
+ *   1. phy-mode was "rgmii-rxid". The factory (and every other RK3566 board
+ *      in this kernel tree: rk3566-box-demo-v10.dtsi, rk3566-h96max-v56.dts,
+ *      rk3568-dshapi-r1.dts) uses plain "rgmii" with clock_in_out="input".
+ *      "rgmii-rxid" makes dwmac4_dma_reset() hang: the soft reset bit in
+ *      DMA_BUS_MODE never clears, so every __stmmac_open() dies with
+ *      "Failed to reset the dma" / "DMA engine initialization failed".
+ *   2. The PHY node carried no ID, so the first MDIO read of PHY_ID1 came back
+ *      0xffff and the board bound "Generic PHY" - which has no gigabit
+ *      support, so even a working link would cap at 100M. Putting the ID in the
+ *      DT compatible (the way the BSP does) makes fwnode_mdiobus_register_phy()
+ *      take the ID from the DT instead of from MDIO, so the realtek/MAE0621A
+ *      driver binds. See drivers/net/mdio/fwnode_mdio.c: the DT-supplied ID
+ *      completely replaces the probe read.
+ *
+ * The PHY reset is on GPIO4 PC2, on the gmac node, exactly as the RK3566
+ * reference design has it. Note the BSP board file
+ * (arch/arm64/boot/dts/rockchip/rk3566-lb2004.dts) claims gpio4 RK_PA3 here,
+ * but on the m1 pin mux this board uses, PA3 is gmac1_rxclk (see
+ * gmac1m1_rgmii_clk in rk3568-pinctrl.dtsi) - requesting it as a GPIO steals
+ * the RGMII receive clock and warns "switch mux 3 to GPIO". PC2 is what
+ * rk3566-box-demo-v10.dtsi uses for the same m1 wiring.
+ */
+&gmac1 {
+	phy-mode = "rgmii";
+	clock_in_out = "input";
+
+	/* SCLK_GMAC1 (the GMAC register bus clock, consumer "stmmaceth") runs off
+	 * the external 125MHz gmac1_clkin; SCLK_GMAC1_RX_TX off the internal
+	 * RGMII speed divider. Same pairing as the BSP and the reference design. */
+	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
+	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>,
+				 <&gmac1_clkin>;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&gmac1m1_miim &gmac1m1_tx_bus2 &gmac1m1_rx_bus2
+		     &gmac1m1_rgmii_clk &gmac1m1_rgmii_bus &gmac1m1_clkinout>;
+
+	/* Reset time is 20ms, 100ms for rtl8211f */
+	snps,reset-gpio = <&gpio4 RK_PC2 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	snps,reset-delays-us = <0 20000 100000>;
+
+	tx_delay = <0x4f>;
+	rx_delay = <0x2d>;
+
+	phy-handle = <&rgmii_phy1>;
+	phy-supply = <&vcc_3v3>;
+	status = "okay";
+};
+
+&mdio1 {
+	rgmii_phy1: ethernet-phy@0 {
+		compatible = "ethernet-phy-id7b74.4411",
+			     "ethernet-phy-ieee802.3-c22";
+		reg = <0>;
+	};
+};
+
+/* eMMC */
+&sdhci {
+	bus-width = <8>;
+	max-frequency = <200000000>;
+	non-removable;
+	mmc-hs200-1_8v;
+	rockchip,txclk-tapnum = <0xc>;
+	status = "okay";
+};
+
+/* SD card slot */
+&sdmmc0 {
+	max-frequency = <150000000>;
+	supports-sd;
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	sd-uhs-sdr104;
+	vqmmc-supply = <&vccio_sd>;
+	vmmc-supply = <&vcc3v3_sd>;
+	status = "okay";
+};
+
+/* SDIO WiFi */
+&sdmmc1 {
+	max-frequency = <150000000>;
+	supports-sdio;
+	bus-width = <4>;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	non-removable;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc1_bus4 &sdmmc1_cmd &sdmmc1_clk>;
+	sd-uhs-sdr104;
+	status = "okay";
+};
+
+/* 3.3V rail alias - the io-domain driver cannot read the voltage of
+ * RK809 SWITCH_REG1 (vcc_3v3), which made the whole io-domains probe
+ * fail (-22) and left ALL VCCIO voltages unset (USB/WiFi/GMAC IO dead).
+ * This fixed regulator models the same always-on 3.3V rail with a
+ * readable voltage. */
+/ {
+	ext_cam_clk: external-camera-clock {
+		compatible = "fixed-clock";
+		clock-frequency = <24000000>;
+		clock-output-names = "CLK_CAMERA_24MHZ";
+		#clock-cells = <0>;
+	};
+
+	vcc3v3_io: vcc3v3-io {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc3v3_io";
+		regulator-always-on;
+		regulator-boot-on;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		vin-supply = <&vcc5v0_sys>;
+	};
+};
+
+/* IO domains - per original Android DT (io-domains under pmugrf@fdc20000,
+ * phandle 0x14e). The main-GRF io-domains node stays disabled as in the
+ * factory DT; vccio2 is deliberately left unconfigured there too. */
+&pmu_io_domains {
+	status = "okay";
+	pmuio1-supply = <&vcc3v3_pmu>;
+	pmuio2-supply = <&vcc3v3_pmu>;
+	vccio1-supply = <&vccio_acodec>;
+	vccio3-supply = <&vccio_sd>;
+	vccio4-supply = <&vcc_1v8>;
+	vccio5-supply = <&vcc3v3_io>;
+	vccio6-supply = <&vcc_1v8>;
+	vccio7-supply = <&vcc3v3_io>;
+};
+
+/* HDMI - core node exists in both forks */
+&hdmi {
+	avdd-0v9-supply = <&vdda0v9_image>;
+	avdd-1v8-supply = <&vcca1v8_image>;
+	status = "okay";
+};
+
+/* PAM8406 class-D amp enable - GPIO1_A4, ACTIVE_HIGH.  Now driven by the
+ * rk817 codec driver via spk-ctl-gpios (enabled only during playback).
+ * This pin must not be muxed as i2s1 sclkrx (see &i2s1_8ch pinctrl
+ * override). */
+&gpio1 {
+	/delete-node/ amp_en;
+};
+
+/* HDMI / VOP display pipeline.  i2s0 feeds the internal dw-hdmi audio
+ * only - it is not muxed to external pins, so no pinctrl here. */
+&hdmi {
+	status = "okay";
+};
+
+&hdmi_sound {
+	status = "okay";
+};
+
+&hdmi_in_vp0 {
+	status = "okay";
+};
+
+&hdmi_in_vp1 {
+	status = "okay";
+};
+
+&vop {
+	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
+	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
+	status = "okay";
+};
+
+&vop_mmu {
+	status = "okay";
+};
+
+&vp0 {
+	vp0_out_hdmi: endpoint@3 {
+		status = "okay";
+	};
+};
+
+&vp1 {
+	vp1_out_hdmi: endpoint@3 {
+		status = "okay";
+	};
+};
+
+/* I2C0: PMIC (SYR827 + RK809) */
+&i2c0 {
+	status = "okay";
+
+	vdd_cpu: syr827@40 {
+		compatible = "silergy,syr827";
+		reg = <0x40>;
+		fcs,suspend-voltage-selector = <1>;
+		regulator-name = "vdd_cpu";
+		regulator-min-microvolt = <712500>;
+		regulator-max-microvolt = <1390000>;
+		regulator-ramp-delay = <2300>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc5v0_sys>;
+
+		regulator-state-mem {
+			regulator-on-in-suspend;
+		};
+	};
+
+	rk809: pmic@20 {
+		compatible = "rockchip,rk809";
+		reg = <0x20>;
+		interrupt-parent = <&gpio0>;
+		interrupts = <RK_PA3 IRQ_TYPE_LEVEL_LOW>;
+		pinctrl-names = "default", "pmic-sleep",
+				"pmic-power-off", "pmic-reset";
+		pinctrl-0 = <&pmic_int_l>;
+		rockchip,system-power-controller;
+		wakeup-source;
+		#clock-cells = <1>;
+		clock-output-names = "rk808-clkout1", "rk808-clkout2";
+
+		rk809_codec: codec {
+			#sound-dai-cells = <0>;
+			compatible = "rockchip,rk809-codec", "rockchip,rk817-codec";
+			/* mclk from i2s1 (matches factory Android DTB:
+			 * clocks = <&cru I2S1_MCLKOUT>) */
+			clocks = <&cru I2S1_MCLKOUT>;
+			clock-names = "mclk";
+			assigned-clocks = <&cru I2S1_MCLKOUT>;
+			assigned-clock-rates = <12288000>;
+			/* Factory codec grabs the i2s1m0-mclk group: this muxes
+			 * GPIO1_A2 to output MCLK.  The PAM8406 amp may need
+			 * it even though the codec driver itself ignores
+			 * pinctrl - the pinctrl subsystem applies the mux. */
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2s1m0_mclk>;
+			/* PAM8406 amp enable: the codec driver raises/lowers
+			 * GPIO1_A4 around playback (factory wiring, spk-ctl).
+			 * A permanent gpio-hog keeps the amp biased on all the
+			 * time and was a likely source of idle noise. */
+			use-ext-amplifier;
+			spk-ctl-gpios = <&gpio1 RK_PA4 GPIO_ACTIVE_HIGH>;
+			hp-volume = <20>;
+			spk-volume = <18>;
+			mic-in-differential;
+			status = "okay";
+		};
+
+		/* lb2004 has no battery/charger; stub nodes keep the rk808 MFD
+		 * from warning "rk817-battery: Failed to locate of_node".
+		 * mfd-core skips children whose status is "disabled" silently. */
+		battery {
+			compatible = "rk817,battery";
+			status = "disabled";
+		};
+
+		charger {
+			compatible = "rk817,charger";
+			status = "disabled";
+		};
+
+		regulators {
+			vdd_logic: DCDC_REG1 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <500000>;
+				regulator-max-microvolt = <1350000>;
+				regulator-name = "vdd_logic";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vdd_gpu: DCDC_REG2 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <500000>;
+				regulator-max-microvolt = <1350000>;
+				/* init voltage + force-PWM mode per original Android DTB */
+				regulator-init-microvolt = <900000>;
+				regulator-initial-mode = <2>;
+				regulator-name = "vdd_gpu";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vcc_ddr: DCDC_REG3 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-name = "vcc_ddr";
+				regulator-state-mem {
+					regulator-on-in-suspend;
+				};
+			};
+
+			vdd_npu: DCDC_REG4 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <500000>;
+				regulator-max-microvolt = <1350000>;
+				/* init voltage + force-PWM mode per original Android DTB */
+				regulator-init-microvolt = <900000>;
+				regulator-initial-mode = <2>;
+				regulator-name = "vdd_npu";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vcc_1v8: DCDC_REG5 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-name = "vcc_1v8";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vdda0v9_image: LDO_REG1 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <900000>;
+				regulator-max-microvolt = <900000>;
+				regulator-name = "vdda0v9_image";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vdda_0v9: LDO_REG2 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <900000>;
+				regulator-max-microvolt = <900000>;
+				regulator-name = "vdda_0v9";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vdda0v9_pmu: LDO_REG3 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <900000>;
+				regulator-max-microvolt = <900000>;
+				regulator-name = "vdda0v9_pmu";
+				regulator-state-mem {
+					regulator-on-in-suspend;
+					regulator-suspend-microvolt = <900000>;
+				};
+			};
+
+			vccio_acodec: LDO_REG4 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vccio_acodec";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vccio_sd: LDO_REG5 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vccio_sd";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vcc3v3_pmu: LDO_REG6 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-name = "vcc3v3_pmu";
+				regulator-state-mem {
+					regulator-on-in-suspend;
+					regulator-suspend-microvolt = <3300000>;
+				};
+			};
+
+			vcca_1v8: LDO_REG7 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-name = "vcca_1v8";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vcca1v8_pmu: LDO_REG8 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-name = "vcca1v8_pmu";
+				regulator-state-mem {
+					regulator-on-in-suspend;
+					regulator-suspend-microvolt = <1800000>;
+				};
+			};
+
+			vcca1v8_image: LDO_REG9 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-min-microvolt = <1800000>;
+				regulator-max-microvolt = <1800000>;
+				regulator-name = "vcca1v8_image";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vcc_3v3: SWITCH_REG1 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-name = "vcc_3v3";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+
+			vcc3v3_sd: SWITCH_REG2 {
+				regulator-always-on;
+				regulator-boot-on;
+				regulator-name = "vcc3v3_sd";
+				regulator-state-mem {
+					regulator-off-in-suspend;
+				};
+			};
+		};
+	};
+};
+
+/* HDMI input: LT6911UXC (HDMI2.0 -> MIPI CSI), on I2C3 @ 0x2b.
+ * Wiring decoded from the factory Android DTB (lb2004-android-raw.dts):
+ * power GPIO3_C4, reset GPIO3_C0 (active low), plugin-det/gpio5 GPIO3_C1,
+ * 4-lane CSI into csi2_dphy0 full mode. */
+&i2c3 {
+	status = "okay";
+
+	lt6911uxc: lt6911uxc@2b {
+		compatible = "lontium,lt6911uxc";
+		reg = <0x2b>;
+		clocks = <&ext_cam_clk>;
+		clock-names = "xvclk";
+		power-gpios = <&gpio3 RK_PC4 GPIO_ACTIVE_HIGH>;
+		gpio5-gpios = <&gpio3 RK_PC1 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio3 RK_PC0 GPIO_ACTIVE_LOW>;
+		rockchip,camera-module-index = <0>;
+		rockchip,camera-module-facing = "back";
+		rockchip,camera-module-name = "LT6911UXC";
+		rockchip,camera-module-lens-name = "NC";
+		status = "okay";
+
+		port {
+			lt6911uxc_out: endpoint {
+				remote-endpoint = <&hdmi_to_mipi_in>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+
+&csi2_dphy0 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			hdmi_to_mipi_in: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&lt6911uxc_out>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			csidphy_out: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&mipi_csi2_input>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+
+&mipi_csi2 {
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			mipi_csi2_input: endpoint@1 {
+				reg = <1>;
+				remote-endpoint = <&csidphy_out>;
+				data-lanes = <1 2 3 4>;
+			};
+		};
+	};
+};
+
+/* NPU - rknpu_drv.c fetches its irq by name
+ * ({ "npu_irq", rknpu_core0_irq_handler }) via platform_get_irq_byname,
+ * so the node needs interrupt-names or probe hits -ENXIO. */
+&rknpu {
+	interrupt-names = "npu_irq";
+};
+
+/* NPU IOMMU - must be enabled for the dma-buf heap path: librknnrt
+ * allocates its buffers from the SYSTEM dma-heap, which returns
+ * physically scattered pages.  Without this MMU the rknpu driver can
+ * only hand the NPU one physical base address, so scattered buffers
+ * are unusable (and under-mapped kernel vmaps crashed the kernel in
+ * rknpu_job_subcore_commit).  With the MMU on, dma_map_sgtable()
+ * gives the buffer a contiguous IOVA and coalesces it to one segment. */
+&rknpu_mmu {
+	status = "okay";
+};
+
+/* NPU opp table - BSP driver bug workaround: the 6.1 branch of
+ * rknpu_devfreq.c sets opp_info->supported_hw[] but never calls
+ * dev_pm_opp_set_supported_hw(), so the opp framework's
+ * opp_table->supported_hw stays NULL.  Since every opp node carries an
+ * opp-supported-hw property, _opp_is_supported() marks them ALL
+ * unsupported ("no supported OPPs" -> "failed to add opp table" ->
+ * no /dev/rknpu).  Drop the properties so the opp framework treats
+ * every OPP as supported. */
+&npu_opp_table {
+	/delete-property/ rockchip,supported-hw;
+
+	opp-200000000 { /delete-property/ opp-supported-hw; };
+	opp-300000000 { /delete-property/ opp-supported-hw; };
+	opp-400000000 { /delete-property/ opp-supported-hw; };
+	opp-600000000 { /delete-property/ opp-supported-hw; };
+	opp-700000000 { /delete-property/ opp-supported-hw; };
+	opp-800000000 { /delete-property/ opp-supported-hw; };
+	opp-900000000 { /delete-property/ opp-supported-hw; };
+	opp-1000000000 { /delete-property/ opp-supported-hw; };
+};
+
+/* OTP - the dtsi ships short clock-names ("usr","sbpi","apb","phy") but
+ * the rockchip-otp driver (rk3568_data) looks them up by full names via
+ * devm_clk_bulk_get, so clk lookup fails with -ENOENT, OTP never probes,
+ * nvmem cells are missing, and bus-npu cannot read leakage -> NPU opp
+ * table init fails ("failed to add opp table").  Restore the names the
+ * driver expects. */
+&otp {
+	clock-names = "clk_otpc_ns_usr", "clk_otpc_ns_sbpi",
+		      "pclk_otpc_ns", "pclk_otpphy";
+};
+&pinctrl {
+	/* rk3568-pinctrl.dtsi has no i2s0 groups (i2s0 is normally an
+	 * internal route to hdmi).  On LB2004 the PAM8406 amp listens on
+	 * i2s0 external pins (gpio3 bank, m0 mux) - define them here.
+	 * Pin map: mclk=GPIO3_A2, sclk=GPIO3_A3, lrck=GPIO3_A4,
+	 * sdo0=GPIO3_A5, sdi0=GPIO3_B1.
+	 * Groups must live under a named child node (like "i2s1 {}" in
+	 * rk3568-pinctrl.dtsi) or the pinctrl driver cannot find them. */
+	i2s0 {
+		i2s0m0_mclk: i2s0m0-mclk {
+			rockchip,pins = <3 RK_PA2 1 &pcfg_pull_none>;
+		};
+
+		i2s0m0_sclk: i2s0m0-sclk {
+			rockchip,pins = <3 RK_PA3 1 &pcfg_pull_none>;
+		};
+
+		i2s0m0_lrck: i2s0m0-lrck {
+			rockchip,pins = <3 RK_PA4 1 &pcfg_pull_none>;
+		};
+
+		i2s0m0_sdo0: i2s0m0-sdo0 {
+			rockchip,pins = <3 RK_PA5 1 &pcfg_pull_none>;
+		};
+
+		i2s0m0_sdi0: i2s0m0-sdi0 {
+			rockchip,pins = <3 RK_PB1 1 &pcfg_pull_none>;
+		};
+	};
+};
+
+&i2s0_8ch {
+	/* i2s0 is the HDMI audio source: it feeds the internal dw-hdmi
+	 * transmitter via the hdmi_sound machine driver.  It must NOT
+	 * also be muxed onto GPIO3 external pins - that double-binds the
+	 * controller (BCLK/LRCK/MCLK fight between the internal HDMI route
+	 * and the external pins) and was the cause of distorted playback.
+	 * The PAM8406 amp listens on i2s1 (see &i2s1_8ch), not here. */
+	status = "okay";
+};
+
+&i2s1_8ch {
+	/* Factory Android DTB: i2s1 uses 4 pin groups (sclktx, lrcktx,
+	 * sdi0, sdo0 - phandle 0xab-0xae).  The mclk group (0x3e) lives
+	 * on the codec node - the pinctrl core claims it for the codec
+	 * at probe, so it must NOT also appear here (conflict -22).
+	 * sdo0 (gpio1-7) is the TX data line the PAM8406 amp listens on.
+	 * The dtsi default grabs all 12 groups which over-muxes GPIO1_A4
+	 * (sclkrx) that the amp enable needs. */
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s1m0_sclktx &i2s1m0_lrcktx
+		     &i2s1m0_sdi0 &i2s1m0_sdo0>;
+	status = "okay";
+};
+
+/* USB - 按工厂 Android DTB 接线:
+ * usb_host0_ehci/ohci -> u2phy1_otg (phys=0x27), usb_host1 -> u2phy1_host (0x28).
+ * 注意: 主控外设寄存器物理走线决定, 必须与工厂一致否则数据线不通. */
+&usb_host0_ehci {
+	phys = <&u2phy1_otg>;
+	status = "okay";
+};
+
+&usb_host0_ohci {
+	phys = <&u2phy1_otg>;
+	status = "okay";
+};
+
+&usb_host1_ehci {
+	phys = <&u2phy1_host>;
+	status = "okay";
+};
+
+&usb_host1_ohci {
+	phys = <&u2phy1_host>;
+	status = "okay";
+};
+
+&usb2phy0 {
+	status = "okay";
+};
+
+&u2phy0_host {
+	phy-supply = <&vcc5v0_host>;
+	status = "okay";
+};
+
+/* USB3 口: 工厂走 usbhost_dwc3(fd000000) + combphy1, 需同时启用父节点 */
+&combphy1_usq {
+	status = "okay";
+};
+
+&usbhost30 {
+	status = "okay";
+};
+
+&usbhost_dwc3 {
+	status = "okay";
+};
+
+&u2phy0_otg {
+	vbus-supply = <&vcc5v0_otg>;
+	status = "okay";
+};
+
+&usb2phy1 {
+	status = "okay";
+};
+
+&u2phy1_host {
+	phy-supply = <&vcc5v0_host>;
+	status = "okay";
+};
+
+&u2phy1_otg {
+	phy-supply = <&vcc5v0_host>;
+	status = "okay";
+};
+
+/* USB3 OTG (Type-C) - factory runs it HS-only off usb2phy0_otg */
+&usbdrd30 {
+	status = "okay";
+};
+
+&usbdrd_dwc3 {
+	phys = <&u2phy0_otg>;
+	phy-names = "usb2-phy";
+	dr_mode = "host";
+	maximum-speed = "high-speed";
+	status = "okay";
+};
+
+/* SDIO WiFi RTL8822CS - factory pins: WL_REG_ON = GPIO2_B1 (pin 9),
+ * HOST_WAKE = GPIO2_B2 (pin 10). The Z96A pins (GPIO3_A1/A2) do not
+ * exist on this board, so the module was never powered up. */
+&sdio_pwrseq {
+	reset-gpios = <&gpio2 RK_PB1 GPIO_ACTIVE_LOW>;
+	status = "okay";
+};
+
+/* WiFi module 3.3V power enables - factory provides them as two
+ * always-on fixed regulators (NOT gpio-hogs): the regulator core
+ * enables both at probe, rfkill-wlan leaves power GPIOs unset
+ * (factory wireless_wlan has no WIFI,poweren_gpio property). */
+/ {
+	vcc3v3_wifi_en: vcc-3v3-en-regulator {
+		compatible = "regulator-fixed";
+		gpio = <&gpio2 RK_PC6 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_en>;
+		regulator-name = "vcc_3v3_wifi";
+		enable-active-high;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc_3v3>;
+	};
+
+	vcc3v3_wifi_pwren: vcc-3v3-wifi-regulator {
+		compatible = "regulator-fixed";
+		gpio = <&gpio3 RK_PB0 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_pwren>;
+		regulator-name = "vcc_3v3_wifi";
+		enable-active-high;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc_3v3>;
+	};
+};
+
+&wireless_wlan {
+	wifi_chip_type = "rtl8822cs";
+	WIFI,host_wake_irq = <&gpio2 RK_PB2 GPIO_ACTIVE_HIGH>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&wifi_enable_h>;
+	status = "okay";
+};
+
+/* GPU - mali-supply per original Android DTB (RK809 DCDC_REG2, phandle 0x65);
+ * without it GPU DVFS has no regulator to switch. */
+&gpu {
+	mali-supply = <&vdd_gpu>;
+	status = "okay";
+};
+
+/* GPU OPP: flat voltages lifted from the original Android DTB (opp-table2).
+ * The shipped table runs one step below the BSP default L0 values, so the
+ * BSP L0-L3 leakage bins are deleted and flat voltages set. */
+&gpu_opp_table {
+	opp-200000000 {
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-300000000 {
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-400000000 {
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-600000000 {
+		opp-microvolt = <825000 825000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-700000000 {
+		opp-microvolt = <900000 900000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-800000000 {
+		opp-microvolt = <950000 950000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+};
+
+#if 0 /* rk-6.1-rkr6.1 dtsi labels NPU as rknpu, not npu */
+&npu {
+	memory-region = <&rknpu>;
+	status = "okay";
+};
+#else
+&rknpu {
+	/* rknpu-supply per original Android DTB = vdd_npu (RK809 DCDC_REG4) */
+	rknpu-supply = <&vdd_npu>;
+	memory-region = <&rknpu_mem>;
+	status = "okay";
+};
+#endif
+
+/* NPU OPP: flat voltages from the original Android DTB (npu-opp-table);
+ * 1GHz OPP stays disabled as shipped, 900MHz is the top enabled point. */
+&npu_opp_table {
+	opp-200000000 {
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-300000000 {
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-400000000 {
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-600000000 {
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-700000000 {
+		opp-microvolt = <850000 850000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-800000000 {
+		opp-microvolt = <875000 875000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-900000000 {
+		opp-microvolt = <925000 925000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-1000000000 {
+		opp-microvolt = <1000000 1000000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+		/delete-property/ opp-supported-hw;
+	};
+};
+
+/* CPU OPP: flat voltages from the original Android DTB cpu0-opp-table
+ * (825mV up to 1104MHz, then 925/1000/1050mV at 1416/1608/1800MHz). */
+&cpu0_opp_table {
+	opp-408000000 {
+		opp-microvolt = <825000 825000 1150000>;
+		/delete-property/ opp-supported-hw;
+	};
+	opp-600000000 {
+		opp-microvolt = <825000 825000 1150000>;
+		/delete-property/ opp-supported-hw;
+	};
+	opp-816000000 {
+		opp-microvolt = <825000 825000 1150000>;
+		/delete-property/ opp-supported-hw;
+	};
+	opp-1104000000 {
+		opp-microvolt = <825000 825000 1150000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+		/delete-property/ opp-supported-hw;
+	};
+	opp-1416000000 {
+		opp-microvolt = <925000 925000 1150000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+		/delete-property/ opp-supported-hw;
+	};
+	opp-1608000000 {
+		opp-microvolt = <1000000 1000000 1150000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+		/delete-property/ opp-supported-hw;
+	};
+	opp-1800000000 {
+		opp-microvolt = <1050000 1050000 1150000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+		/delete-property/ opp-supported-hw;
+	};
+};
+
+&bus_npu {
+	rockchip,busfreq-policy = "clkfreq";
+	status = "okay";
+};
+
+/* PCIe - only pcie2x1 in 6.1 RK3566 BSP; pcie30phy/pcie3x2 are RK3588-only */
+&pcie2x1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie_reset_h>;
+	reset-gpios = <&gpio0 RK_PB4 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+};
+
+#if 0 /* rk-6.1-rkr6.1 dtsi lacks &pcie30phy / &pcie3x2 (RK3588 only) */
+&pcie30phy {
+	status = "okay";
+};
+
+&pcie3x2 {
+	phy-supply = <&pcie_pwr>;
+	status = "okay";
+};
+#endif
+
+/* SATA2 - exists in 6.1 BSP */
+&sata2 {
+	status = "okay";
+};
+
+/* TSADC */
+&tsadc {
+	status = "okay";
+};
+
+/* Watchdog */
+&wdt {
+	status = "okay";
+};
+
+/* I2C5 (empty, available for expansion) */
+&i2c5 {
+	status = "okay";
+};
+
+&spi1 {
+	status = "disabled";
+};
+
+&spi2 {
+	status = "disabled";
+};
+
+/* CAN - all disabled, exists in 6.1 BSP */
+&can0 {
+	status = "disabled";
+};
+
+&can1 {
+	status = "disabled";
+};
+
+&can2 {
+	status = "disabled";
+};
+
+/* PWM (all disabled in Android, keep as-is) */
+&pwm0 { status = "disabled"; };
+&pwm1 { status = "disabled"; };
+&pwm2 { status = "disabled"; };
+&pwm3 { status = "disabled"; };
+&pwm4 { status = "disabled"; };
+&pwm5 { status = "disabled"; };
+&pwm6 { status = "disabled"; };
+&pwm7 { status = "disabled"; };
+&pwm8 { status = "disabled"; };
+&pwm9 { status = "disabled"; };
+&pwm10 { status = "disabled"; };
+&pwm11 { status = "disabled"; };
+&pwm12 { status = "disabled"; };
+&pwm13 { status = "disabled"; };
+&pwm14 { status = "disabled"; };
+&pwm15 { status = "disabled"; };
+
+#if 0 /* rk-6.1-rkr6.1 dtsi lacks &pwm16_32k */
+&pwm16_32k { status = "disabled"; };
+#endif
+
+/* ADC keypad on SARADC ch0 - factory 4-key ladder from the original
+ * Android DT (adc-keys, poll 100ms, keyup 1.8V). The same physical button
+ * is the Recovery/Loader key: the U-Boot DTB samples ch0 at boot with
+ * press-threshold 9uV (~ground) => rockchip download/maskrom mode;
+ * in-kernel it reports as KEY_VOLUMEUP. */
+&saradc {
+	status = "okay";
+};
+
+/ {
+	adc-keys {
+		compatible = "adc-keys";
+		io-channels = <&saradc 0>;
+		io-channel-names = "buttons";
+		keyup-threshold-microvolt = <1800000>;
+		poll-interval = <100>;
+
+		vol-up-key {
+			label = "volume up";
+			linux,code = <KEY_VOLUMEUP>;
+			press-threshold-microvolt = <1750>;
+		};
+
+		vol-down-key {
+			label = "volume down";
+			linux,code = <KEY_VOLUMEDOWN>;
+			press-threshold-microvolt = <297500>;
+		};
+
+		brightness-up-key {
+			label = "menu";
+			linux,code = <KEY_BRIGHTNESSUP>;
+			press-threshold-microvolt = <1450000>;
+		};
+
+		back-key {
+			label = "back";
+			linux,code = <KEY_BRIGHTNESSDOWN>;
+			press-threshold-microvolt = <1650000>;
+		};
+	};
+};
+
+/* GPIO hog: hub 芯片复位释放, 启动即驱动为高 */
+&gpio3 {
+	hub-rst-hog {
+		gpio-hog;
+		gpios = <RK_PB4 GPIO_ACTIVE_HIGH>;
+		output-high;
+		line-name = "hub-rst-3v3";
+	};
+};
+
+/* Pinctrl */
+&pinctrl {
+	pmic {
+		pmic_int_l: pmic-int-l {
+			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	usb {
+		vcc5v0_usb_en: vcc5v0-usb-en {
+			rockchip,pins = <3 RK_PB3 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+		vcc5v0_host_en: vcc5v0-host-en {
+			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		vcc5v0_otg_en: vcc5v0-otg-en {
+			rockchip,pins = <0 RK_PC4 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+		hub_rst_3v3: hub-rst-3v3 {
+			rockchip,pins = <3 RK_PB4 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+	};
+
+	wireless-wlan {
+		wifi_enable_h: wifi-enable-h {
+			/* WL_REG_ON = GPIO2_B1 per factory DT (was GPIO3_A1/z96a) */
+			rockchip,pins = <2 RK_PB1 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+		wifi_host_wake_irq: wifi-host-wake-irq {
+			rockchip,pins = <2 RK_PB2 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+		/* WiFi 3.3V enable pads per factory: wifi-en = GPIO2_C6
+		 * (pull-up), wifi-pwren = GPIO3_B0 (pull-down) */
+		wifi_en: wifi-en {
+			rockchip,pins = <2 RK_PC6 RK_FUNC_GPIO &pcfg_pull_up>;
+		};
+		wifi_pwren: wifi-pwren {
+			rockchip,pins = <3 RK_PB0 RK_FUNC_GPIO &pcfg_pull_down>;
+		};
+	};
+
+	wireless-bluetooth {
+		bt_rst_gpio: bt-rst-gpio {
+			rockchip,pins = <2 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	/* gmac1: board uses the m1 mux (factory Android DT); the m0/m1 pin
+	 * groups ship in rk3568-pinctrl.dtsi, referenced from &gmac1 above. */
+
+	/* pcie_reset_h: extracted so &pcie2x1's pinctrl-0 resolves */
+	pcie {
+		pcie_reset_h: pcie-reset-h {
+			rockchip,pins = <0 RK_PB4 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
+
+/*
+ * lb2004 OPP overrides: flatten CPU/GPU/NPU voltage tables to the values
+ * measured in the factory Android DTB (one step lower than the BSP tables
+ * in rk356x.dtsi, which target RK3568 boards). L0-L3 tiering and
+ * opp-supported-hw gating are deleted to match the factory flat tables.
+ * io-domains are enabled in the earlier &pmu_io_domains block; vccio5/7
+ * point at the readable fixed regulator vcc3v3_io — the RK809 SWITCH_REG1
+ * ops has no get_voltage, which would fail the whole io-domains probe.
+ */
+&cpu0_opp_table {
+	opp-408000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <825000 825000 1150000>;
+	};
+	opp-600000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <825000 825000 1150000>;
+	};
+	opp-816000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <825000 825000 1150000>;
+	};
+	opp-1104000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <825000 825000 1150000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-1416000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <925000 925000 1150000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-1608000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <1000000 1000000 1150000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-1800000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <1050000 1050000 1150000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+};
+
+&gpu_opp_table {
+	opp-200000000 {
+		opp-microvolt = <825000>;
+	};
+	opp-300000000 {
+		opp-microvolt = <825000>;
+	};
+	opp-400000000 {
+		opp-microvolt = <825000>;
+	};
+	opp-600000000 {
+		opp-microvolt = <825000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-700000000 {
+		opp-microvolt = <900000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-800000000 {
+		opp-microvolt = <950000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+};
+
+&npu_opp_table {
+	opp-200000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-300000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-400000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-600000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <825000 825000 1000000>;
+	};
+	opp-700000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <850000 850000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-800000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <875000 875000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	opp-900000000 {
+		/delete-property/ opp-supported-hw;
+		opp-microvolt = <925000 925000 1000000>;
+		/delete-property/ opp-microvolt-L0;
+		/delete-property/ opp-microvolt-L1;
+		/delete-property/ opp-microvolt-L2;
+		/delete-property/ opp-microvolt-L3;
+	};
+	/* opp-1000000000: stays disabled (factory same) */
+};

@@ -1,0 +1,94 @@
+From 10942055fdd1d9f43e159dcb77aae61253856d19 Mon Sep 17 00:00:00 2001
+From: z96a <z96a@local>
+Date: Tue, 10 Nov 2026 19:13:32 +0800
+Subject: [PATCH 5/5] z96a: gate charge mode on verified ON_SOURCE values, drop
+ PMU marker
+
+---
+ board/rockchip/z96a_rk3568/board.c | 38 +++++++-----------------------
+ 1 file changed, 8 insertions(+), 30 deletions(-)
+
+diff --git a/board/rockchip/z96a_rk3568/board.c b/board/rockchip/z96a_rk3568/board.c
+index f6a12795a0..534716dcb1 100644
+--- a/board/rockchip/z96a_rk3568/board.c
++++ b/board/rockchip/z96a_rk3568/board.c
+@@ -69,14 +69,13 @@
+ #define Z96A_PMIC_ON_PLUG_IN	BIT(6)
+ #define Z96A_PMIC_IRQ_PWRON	(BIT(0) | BIT(1))
+ 
+-/* PMU_GRF is always-on; OS_REG0 (0x200) is the Linux reboot-mode register.
+- * OS_REG7 is private to U-Boot and marks "charge gate already handled"
+- * so a warm Linux reboot does not land in charging mode again.
++/* RK809 ON_SOURCE decoded on hardware 2026-11-10:
++ *   0x40 = cold plug-in  (PLUG_IN, no PWRON)
++ *   0x80 = power button  (PWRON, no PLUG_IN)
++ *   0x02 = warm Linux reboot (neither bit set)
++ * PMU_GRF OS registers are cleared by the warm reset, so no marker is
++ * needed: a plain `reboot` cannot match PLUG_IN and will boot normally.
+  */
+-#define Z96A_PMUGRF_BASE	0xfdc20000
+-#define Z96A_PMUGRF_OS_REG(n)	(0x200 + (n) * 4)
+-#define Z96A_MARKER_REG		7
+-#define Z96A_MARKER_MAGIC	0x5a96c001
+ 
+ /* defined below, used by the charge loop above them */
+ static int sc8886_read16(struct udevice *chip, u8 reg, u16 *val);
+@@ -127,20 +126,6 @@ static void z96a_leds_immediate(void)
+ 	z96a_led_set("z96a-led-full", false);
+ }
+ 
+-static bool z96a_charge_marker_set(void)
+-{
+-	return readl((void *)(Z96A_PMUGRF_BASE +
+-			      Z96A_PMUGRF_OS_REG(Z96A_MARKER_REG))) ==
+-		       Z96A_MARKER_MAGIC;
+-}
+-
+-static void z96a_charge_marker_write(void)
+-{
+-	writel(Z96A_MARKER_MAGIC,
+-	       (void *)(Z96A_PMUGRF_BASE +
+-			Z96A_PMUGRF_OS_REG(Z96A_MARKER_REG)));
+-}
+-
+ /*
+  * Minimal U-Boot charging mode: keep the SoC in U-Boot, show the charger
+  * state on the LEDs and leave as soon as the power key is pressed or the
+@@ -211,8 +196,8 @@ static bool z96a_usb_storage_present(void)
+  * Decide between "charge while plugged in" and a normal boot.
+  *
+  * Only a cold plug-in event enters charging mode.  A power-key power-up
+- * always boots normally, and a warm reboot is suppressed by the PMU_GRF
+- * marker so `reboot` under AC power cannot trap the machine.
++ * boots normally, and a warm Linux reboot reports ON_SOURCE=0x02
++ * (neither PLUG_IN nor PWRON), so `reboot` under AC power also boots.
+  */
+ static void z96a_charge_gate(struct udevice *bus, struct udevice *charger)
+ {
+@@ -244,18 +229,12 @@ static void z96a_charge_gate(struct udevice *bus, struct udevice *charger)
+ 			printf("z96a-charge: normal boot (power key)\n");
+ 			return;
+ 		}
+-		if (z96a_charge_marker_set()) {
+-			printf("z96a-charge: normal boot (warm reboot marker)\n");
+-			return;
+-		}
+ 		if (z96a_usb_storage_present()) {
+ 			printf("z96a-charge: USB stick present, normal boot\n");
+ 			return;
+ 		}
+ 	}
+ 
+-	/* remember this power event before we can loop/reset again */
+-	z96a_charge_marker_write();
+ 	z96a_charge_loop(bus, charger);
+ }
+ 
+@@ -270,7 +249,6 @@ static int do_z96a_charge(struct cmd_tbl *cmdtp, int flag, int argc,
+ 		return CMD_RET_FAILURE;
+ 	}
+ 
+-	z96a_charge_marker_write();
+ 	z96a_charge_loop(bus, charger);
+ 	return CMD_RET_SUCCESS;
+ }

@@ -1,0 +1,7 @@
+00afdb7f wifibt
+  00ade2d8 no function
+  00b22520 no function
+00aff834 power_wifi_module
+  00a02d70 FUN_00a02d10 @ 00a02d10
+00aff846 vcc9-supply
+  00a83b90 FUN_00a83b78 @ 00a83b78

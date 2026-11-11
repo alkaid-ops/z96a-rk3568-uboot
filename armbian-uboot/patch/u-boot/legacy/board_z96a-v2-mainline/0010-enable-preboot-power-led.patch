@@ -1,0 +1,11 @@
+diff --git a/configs/z96a-rk3568-laptop-v2_defconfig b/configs/z96a-rk3568-laptop-v2_defconfig
+index 34d95a8..d809f5d 100644
+--- a/configs/z96a-rk3568-laptop-v2_defconfig
++++ b/configs/z96a-rk3568-laptop-v2_defconfig
+@@ -120,3 +120,6 @@ CONFIG_SPL_ADC=y
+ CONFIG_DM_RNG=y
+ CONFIG_RNG_ROCKCHIP=y
+ CONFIG_CMD_KASLRSEED=y
++
++CONFIG_USE_PREBOOT=y
++CONFIG_PREBOOT="gpio set A27"

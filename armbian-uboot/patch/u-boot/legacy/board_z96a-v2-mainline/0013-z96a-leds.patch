@@ -1,0 +1,41 @@
+diff --git a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+--- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
++++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+@@ -45,6 +45,37 @@
+ 		regulator-max-microvolt = <1800000>;
+ 	};
+ 
++	/*
++	 * Front-panel LEDs (same wiring as the Linux DTS).  U-Boot drives
++	 * them from board_late_init so the user gets immediate feedback
++	 * instead of waiting for the Linux charger/LED drivers.
++	 */
++	leds {
++		compatible = "gpio-leds";
++		bootph-all;
++
++		led-power {
++			label = "z96a-led-power";
++			gpios = <&gpio0 RK_PD3 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
++			bootph-all;
++		};
++
++		led-charging {
++			label = "z96a-led-charging";
++			gpios = <&gpio0 RK_PD5 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
++			bootph-all;
++		};
++
++		led-full {
++			label = "z96a-led-full";
++			gpios = <&gpio0 RK_PD6 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
++			bootph-all;
++		};
++	};
++
+ 	/* Z96A volume-up key (also Recovery on case silkscreen).
+ 	 * Wiring VERIFIED on real hardware 2026-09: SARADC ch0.
+ 	 * The factory Android DTB (boot-0.dts) declares ch2, but the

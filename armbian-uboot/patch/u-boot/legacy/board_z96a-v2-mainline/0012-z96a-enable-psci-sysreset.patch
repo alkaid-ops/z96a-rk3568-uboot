@@ -1,0 +1,8 @@
+diff --git a/configs/z96a-rk3568-laptop-v2_defconfig b/configs/z96a-rk3568-laptop-v2_defconfig
+--- a/configs/z96a-rk3568-laptop-v2_defconfig
++++ b/configs/z96a-rk3568-laptop-v2_defconfig
+@@ -123,3 +123,4 @@
+ 
+ CONFIG_USE_PREBOOT=y
+ CONFIG_PREBOOT="gpio set A27"
++CONFIG_SYSRESET_PSCI=y

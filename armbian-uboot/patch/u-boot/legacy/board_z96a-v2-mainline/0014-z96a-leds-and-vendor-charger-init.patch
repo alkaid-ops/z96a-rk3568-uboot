@@ -1,0 +1,98 @@
+diff --git a/board/rockchip/z96a_rk3568/board.c b/board/rockchip/z96a_rk3568/board.c
+--- a/board/rockchip/z96a_rk3568/board.c
++++ b/board/rockchip/z96a_rk3568/board.c
+@@ -22,6 +22,7 @@
+ #include <time.h>
+ #include <i2c.h>
+ #include <log.h>
++#include <led.h>
+ 
+ #define SC8886_I2C_BUS		"i2c@fdd40000"
+ #define SC8886_I2C_ADDR		0x6b
+@@ -34,6 +35,8 @@
+ #define SC8886_CHARGE_CURRENT	0x02	/* bits[12:6], 64 mA LSB */
+ #define SC8886_PROCHOT_OPT0	0x36	/* VSYS_VTH/ICRIT_DEG/PROCHOT_WIDTH */
+ #define SC8886_PROCHOT_OPT1	0x37	/* IBAT short / VSYS_REG thresholds */
++#define SC8886_IN_FCHRG		BIT(2)	/* 0x21 bit2: fast charge */
++#define SC8886_IN_PRECHG	BIT(1)	/* 0x21 bit1: pre-charge */
+ 
+ /* factory values from SC8886 register dump (before any host writes) */
+ #define SC8886_PROCHOT_OPT0_VAL	0x65
+@@ -52,6 +55,30 @@
+ /* treat battery as usable above this voltage */
+ #define SC8886_BAT_OK_MV	3000
+ 
++static void z96a_led_set(const char *label, bool on)
++{
++	struct udevice *dev;
++
++	if (led_get_by_label(label, &dev))
++		return;
++	led_set_state(dev, on ? LEDST_ON : LEDST_OFF);
++}
++
++/* power = white (charger online), charging = red, full = green */
++static void z96a_leds_update(bool ac, bool charging, bool full)
++{
++	z96a_led_set("z96a-led-power", ac);
++	z96a_led_set("z96a-led-charging", ac && charging);
++	z96a_led_set("z96a-led-full", ac && !charging && full);
++}
++
++static void z96a_leds_immediate(void)
++{
++	z96a_led_set("z96a-led-power", true);
++	z96a_led_set("z96a-led-charging", false);
++	z96a_led_set("z96a-led-full", false);
++}
++
+ static int sc8886_read16(struct udevice *chip, u8 reg, u16 *val)
+ {
+ 	u8 buf[2];
+@@ -166,12 +193,15 @@
+ {
+ 	struct udevice *bus, *chip;
+ 	u16 status = 0, prochot = 0, adcibat = 0;
+-	int ac_present, bat_removed, bat_mv;
++	int ac_present, bat_removed, bat_mv, charging;
+ 	int ret;
+ 
+ 	if (!of_machine_is_compatible("sunniwell,z96a-rk3568-laptop-v2"))
+ 		return 0;
+ 
++	/* Give the user a visible sign of life before any I2C work. */
++	z96a_leds_immediate();
++
+ 	ret = uclass_get_device_by_name(UCLASS_I2C, SC8886_I2C_BUS, &bus);
+ 	if (ret) {
+ 		printf("z96a-pwr: i2c bus '%s' unavailable (%d)\n",
+@@ -209,6 +239,7 @@
+ 	sc8886_write8(chip, SC8886_PROCHOT_OPT1, SC8886_PROCHOT_OPT1_VAL);
+ 
+ 	ac_present = !!(status & SC8886_AC_STAT);
++	charging = !!(prochot & (SC8886_IN_FCHRG | SC8886_IN_PRECHG));
+ 	bat_removed = !!(prochot & SC8886_BAT_REMOV);
+ 	bat_mv = SC8886_BATVOL_BASE_MV +
+ 		 (adcibat & SC8886_BATVOL_MASK) * SC8886_BATVOL_STEP_MV;
+@@ -216,6 +247,21 @@
+ 	printf("z96a-pwr: SC8886 AC=%d BAT_REMOV=%d BAT=%dmV\n",
+ 	       ac_present, bat_removed, bat_mv);
+ 
++	z96a_leds_update(ac_present, charging, true);
++
++	/*
++	 * Vendor BQ25703 charger init (0xa7e3bc):
++	 *   clear watchdog (0x00 bits[15:13]),
++	 *   0x0c = 0x1200,
++	 *   0x0e = 0x1e00 (USB adapter) or 0x0a00.
++	 * AC presence is used as the adapter proxy; no AC -> 0x0a00.
++	 */
++	sc8886_update16(chip, 0x00, 0xe000, 0x0000);
++	sc8886_update16(chip, 0x0c, 0xffff, 0x1200);
++	sc8886_update16(chip, 0x0e, 0xffff, ac_present ? 0x1e00 : 0x0a00);
++	printf("z96a-pwr: charger init 0x00/0x0c=0x1200/0x0e=0x%04x\n",
++	       ac_present ? 0x1e00 : 0x0a00);
++
+ 	if (ac_present) {
+ 		/* C port has power: use it, never reverse-boost to VBUS */
+ 		sc8886_update16(chip, SC8886_CHARGE_OPTION2,

@@ -1,0 +1,57 @@
+From 7d006f024e0b9ef6498c69ece9ba1738a7c5523f Mon Sep 17 00:00:00 2001
+From: z96a <z96a@local>
+Date: Tue, 10 Nov 2026 18:39:05 +0800
+Subject: [PATCH 4/5] z96a: boot from USB stick instead of charging mode when
+ present
+
+---
+ board/rockchip/z96a_rk3568/board.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/board/rockchip/z96a_rk3568/board.c b/board/rockchip/z96a_rk3568/board.c
+index 8b6244ed02..f6a12795a0 100644
+--- a/board/rockchip/z96a_rk3568/board.c
++++ b/board/rockchip/z96a_rk3568/board.c
+@@ -25,6 +25,7 @@
+ #include <time.h>
+ #include <i2c.h>
+ #include <log.h>
++#include <usb.h>
+ 
+ #define SC8886_I2C_BUS		"i2c@fdd40000"
+ #define SC8886_I2C_ADDR		0x6b
+@@ -189,6 +190,23 @@ static void z96a_charge_loop(struct udevice *bus, struct udevice *charger)
+ 	}
+ }
+ 
++/*
++ * Rescue priority: if a USB stick is already plugged in when the charger
++ * is connected, never sit in charging mode - boot it so a broken eMMC
++ * can always be recovered without maskrom or a power-key press.
++ */
++static bool z96a_usb_storage_present(void)
++{
++#if defined(CONFIG_USB) && defined(CONFIG_USB_STORAGE)
++	printf("z96a-charge: probing USB for a rescue stick\n");
++	if (usb_init())
++		return false;
++	return usb_stor_scan(0) == 0;
++#else
++	return false;
++#endif
++}
++
+ /*
+  * Decide between "charge while plugged in" and a normal boot.
+  *
+@@ -230,6 +248,10 @@ static void z96a_charge_gate(struct udevice *bus, struct udevice *charger)
+ 			printf("z96a-charge: normal boot (warm reboot marker)\n");
+ 			return;
+ 		}
++		if (z96a_usb_storage_present()) {
++			printf("z96a-charge: USB stick present, normal boot\n");
++			return;
++		}
+ 	}
+ 
+ 	/* remember this power event before we can loop/reset again */

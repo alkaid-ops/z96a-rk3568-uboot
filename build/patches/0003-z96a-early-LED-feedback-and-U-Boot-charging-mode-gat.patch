@@ -1,0 +1,325 @@
+From 0dc86f20013854192878b2fb142f2e66205a33fe Mon Sep 17 00:00:00 2001
+From: z96a <z96a@local>
+Date: Tue, 10 Nov 2026 18:30:34 +0800
+Subject: [PATCH 3/5] z96a: early LED feedback and U-Boot charging mode gate
+
+---
+ board/rockchip/z96a_rk3568/board.c            | 219 +++++++++++++++++-
+ .../arm64/rockchip/rk3568-z96a-laptop-v2.dts  |  31 +++
+ 2 files changed, 249 insertions(+), 1 deletion(-)
+
+diff --git a/board/rockchip/z96a_rk3568/board.c b/board/rockchip/z96a_rk3568/board.c
+index 790dcb4199..8b6244ed02 100644
+--- a/board/rockchip/z96a_rk3568/board.c
++++ b/board/rockchip/z96a_rk3568/board.c
+@@ -14,10 +14,13 @@
+ 
+ #include <adc.h>
+ #include <asm/io.h>
++#include <command.h>
++#include <console.h>
+ #include <dm.h>
+ #include <dm/device.h>
+ #include <dm/uclass.h>
+ #include <env.h>
++#include <led.h>
+ #include <linux/delay.h>
+ #include <time.h>
+ #include <i2c.h>
+@@ -52,6 +55,208 @@
+ /* treat battery as usable above this voltage */
+ #define SC8886_BAT_OK_MV	3000
+ 
++/* SC8886 charge status bits in the 16-bit view starting at 0x20 */
++#define SC8886_IN_FCHRG		BIT(2)	/* 0x21 bit2: fast charge */
++#define SC8886_IN_PRECHG	BIT(1)	/* 0x21 bit1: pre-charge */
++
++/* RK809 PMIC on the same I2C0 bus */
++#define Z96A_PMIC_ADDR		0x20
++#define Z96A_PMIC_ON_SOURCE	0xf5	/* BIT7 PWRON, BIT6 PLUG_IN */
++#define Z96A_PMIC_INT_STS0	0xf8	/* W1C: BIT0 PWRON fall, BIT1 rise */
++#define Z96A_PMIC_INT_MSK0	0xf9
++#define Z96A_PMIC_ON_PWRON	BIT(7)
++#define Z96A_PMIC_ON_PLUG_IN	BIT(6)
++#define Z96A_PMIC_IRQ_PWRON	(BIT(0) | BIT(1))
++
++/* PMU_GRF is always-on; OS_REG0 (0x200) is the Linux reboot-mode register.
++ * OS_REG7 is private to U-Boot and marks "charge gate already handled"
++ * so a warm Linux reboot does not land in charging mode again.
++ */
++#define Z96A_PMUGRF_BASE	0xfdc20000
++#define Z96A_PMUGRF_OS_REG(n)	(0x200 + (n) * 4)
++#define Z96A_MARKER_REG		7
++#define Z96A_MARKER_MAGIC	0x5a96c001
++
++/* defined below, used by the charge loop above them */
++static int sc8886_read16(struct udevice *chip, u8 reg, u16 *val);
++
++static int z96a_i2c_read8(struct udevice *bus, u8 addr, u8 reg, u8 *val)
++{
++	struct udevice *chip;
++	int ret;
++
++	ret = i2c_get_chip(bus, addr, 1, &chip);
++	if (ret)
++		return ret;
++	return dm_i2c_read(chip, reg, val, 1);
++}
++
++static int z96a_i2c_write8(struct udevice *bus, u8 addr, u8 reg, u8 val)
++{
++	struct udevice *chip;
++	int ret;
++
++	ret = i2c_get_chip(bus, addr, 1, &chip);
++	if (ret)
++		return ret;
++	return dm_i2c_write(chip, reg, &val, 1);
++}
++
++static void z96a_led_set(const char *label, bool on)
++{
++	struct udevice *dev;
++
++	if (led_get_by_label(label, &dev))
++		return;
++	led_set_state(dev, on ? LEDST_ON : LEDST_OFF);
++}
++
++/* power = white (charger online), charging = red, full = green */
++static void z96a_leds_update(bool ac, bool charging, bool full)
++{
++	z96a_led_set("z96a-led-power", ac);
++	z96a_led_set("z96a-led-charging", ac && charging);
++	z96a_led_set("z96a-led-full", ac && !charging && full);
++}
++
++static void z96a_leds_immediate(void)
++{
++	z96a_led_set("z96a-led-power", true);
++	z96a_led_set("z96a-led-charging", false);
++	z96a_led_set("z96a-led-full", false);
++}
++
++static bool z96a_charge_marker_set(void)
++{
++	return readl((void *)(Z96A_PMUGRF_BASE +
++			      Z96A_PMUGRF_OS_REG(Z96A_MARKER_REG))) ==
++		       Z96A_MARKER_MAGIC;
++}
++
++static void z96a_charge_marker_write(void)
++{
++	writel(Z96A_MARKER_MAGIC,
++	       (void *)(Z96A_PMUGRF_BASE +
++			Z96A_PMUGRF_OS_REG(Z96A_MARKER_REG)));
++}
++
++/*
++ * Minimal U-Boot charging mode: keep the SoC in U-Boot, show the charger
++ * state on the LEDs and leave as soon as the power key is pressed or the
++ * user hits Ctrl+C.  It never blocks the normal USB-first boot path
++ * unless the PMIC reports a cold plug-in event.
++ */
++static void z96a_charge_loop(struct udevice *bus, struct udevice *charger)
++{
++	u8 intsts;
++
++	/* clear any stale power-key latch before polling */
++	z96a_i2c_write8(bus, Z96A_PMIC_ADDR, Z96A_PMIC_INT_STS0,
++			Z96A_PMIC_IRQ_PWRON);
++
++	printf("z96a-charge: charging mode; press power key or Ctrl+C to boot\n");
++
++	while (1) {
++		u16 status = 0, prochot = 0;
++		bool ac = false, charging = false, full = false;
++
++		if (!sc8886_read16(charger, SC8886_CHARGER_STATUS, &status) &&
++		    !sc8886_read16(charger, SC8886_PROCHOT_STATUS, &prochot)) {
++			ac = !!(status & SC8886_AC_STAT);
++			charging = !!(prochot & (SC8886_IN_FCHRG |
++						 SC8886_IN_PRECHG));
++			full = !ac || !charging;
++		}
++		z96a_leds_update(ac, charging, full);
++
++		if (!z96a_i2c_read8(bus, Z96A_PMIC_ADDR, Z96A_PMIC_INT_STS0,
++				    &intsts)) {
++			if (intsts & Z96A_PMIC_IRQ_PWRON) {
++				z96a_i2c_write8(bus, Z96A_PMIC_ADDR,
++						Z96A_PMIC_INT_STS0,
++						Z96A_PMIC_IRQ_PWRON);
++				printf("z96a-charge: power key pressed, booting\n");
++				break;
++			}
++		}
++
++		if (ctrlc()) {
++			printf("z96a-charge: Ctrl+C, booting\n");
++			break;
++		}
++
++		mdelay(200);
++	}
++}
++
++/*
++ * Decide between "charge while plugged in" and a normal boot.
++ *
++ * Only a cold plug-in event enters charging mode.  A power-key power-up
++ * always boots normally, and a warm reboot is suppressed by the PMU_GRF
++ * marker so `reboot` under AC power cannot trap the machine.
++ */
++static void z96a_charge_gate(struct udevice *bus, struct udevice *charger)
++{
++	const char *mode = env_get("z96a_charge");
++	u8 on_source = 0;
++	bool force = mode && !strcmp(mode, "force");
++
++	if (mode && !strcmp(mode, "0")) {
++		printf("z96a-charge: disabled by env z96a_charge=0\n");
++		return;
++	}
++
++	if (z96a_i2c_read8(bus, Z96A_PMIC_ADDR, Z96A_PMIC_ON_SOURCE,
++			   &on_source)) {
++		printf("z96a-charge: cannot read RK809 ON_SOURCE, normal boot\n");
++		return;
++	}
++
++	printf("z96a-charge: ON_SOURCE=0x%02x pwr=%d plug=%d\n", on_source,
++	       !!(on_source & Z96A_PMIC_ON_PWRON),
++	       !!(on_source & Z96A_PMIC_ON_PLUG_IN));
++
++	if (!force) {
++		if (!(on_source & Z96A_PMIC_ON_PLUG_IN)) {
++			printf("z96a-charge: normal boot (battery/power key)\n");
++			return;
++		}
++		if (on_source & Z96A_PMIC_ON_PWRON) {
++			printf("z96a-charge: normal boot (power key)\n");
++			return;
++		}
++		if (z96a_charge_marker_set()) {
++			printf("z96a-charge: normal boot (warm reboot marker)\n");
++			return;
++		}
++	}
++
++	/* remember this power event before we can loop/reset again */
++	z96a_charge_marker_write();
++	z96a_charge_loop(bus, charger);
++}
++
++static int do_z96a_charge(struct cmd_tbl *cmdtp, int flag, int argc,
++			  char *const argv[])
++{
++	struct udevice *bus, *charger;
++
++	if (uclass_get_device_by_name(UCLASS_I2C, SC8886_I2C_BUS, &bus) ||
++	    i2c_get_chip(bus, SC8886_I2C_ADDR, 1, &charger)) {
++		printf("z96a-charge: I2C0/SC8886 unavailable\n");
++		return CMD_RET_FAILURE;
++	}
++
++	z96a_charge_marker_write();
++	z96a_charge_loop(bus, charger);
++	return CMD_RET_SUCCESS;
++}
++
++U_BOOT_CMD(z96a_charge, 1, 0, do_z96a_charge,
++	   "enter Z96A U-Boot charging mode (LED + power key)",
++	   "");
++
+ static int sc8886_read16(struct udevice *chip, u8 reg, u16 *val)
+ {
+ 	u8 buf[2];
+@@ -166,12 +371,15 @@ int rk_board_late_init(void)
+ {
+ 	struct udevice *bus, *chip;
+ 	u16 status = 0, prochot = 0, adcibat = 0;
+-	int ac_present, bat_removed, bat_mv;
++	int ac_present, bat_removed, bat_mv, charging;
+ 	int ret;
+ 
+ 	if (!of_machine_is_compatible("sunniwell,z96a-rk3568-laptop-v2"))
+ 		return 0;
+ 
++	/* Give the user a visible sign of life before any I2C work. */
++	z96a_leds_immediate();
++
+ 	ret = uclass_get_device_by_name(UCLASS_I2C, SC8886_I2C_BUS, &bus);
+ 	if (ret) {
+ 		printf("z96a-pwr: i2c bus '%s' unavailable (%d)\n",
+@@ -209,6 +417,7 @@ int rk_board_late_init(void)
+ 	sc8886_write8(chip, SC8886_PROCHOT_OPT1, SC8886_PROCHOT_OPT1_VAL);
+ 
+ 	ac_present = !!(status & SC8886_AC_STAT);
++	charging = !!(prochot & (SC8886_IN_FCHRG | SC8886_IN_PRECHG));
+ 	bat_removed = !!(prochot & SC8886_BAT_REMOV);
+ 	bat_mv = SC8886_BATVOL_BASE_MV +
+ 		 (adcibat & SC8886_BATVOL_MASK) * SC8886_BATVOL_STEP_MV;
+@@ -216,6 +425,8 @@ int rk_board_late_init(void)
+ 	printf("z96a-pwr: SC8886 AC=%d BAT_REMOV=%d BAT=%dmV\n",
+ 	       ac_present, bat_removed, bat_mv);
+ 
++	z96a_leds_update(ac_present, charging, true);
++
+ 	if (ac_present) {
+ 		/* C port has power: use it, never reverse-boost to VBUS */
+ 		sc8886_update16(chip, SC8886_CHARGE_OPTION2,
+@@ -249,5 +460,11 @@ int rk_board_late_init(void)
+ 		       bat_removed, bat_mv);
+ 	}
+ 
++	/*
++	 * Cold plug-in -> stay here and charge, power key / warm reboot ->
++	 * fall through to the normal USB-first boot.
++	 */
++	z96a_charge_gate(bus, chip);
++
+ 	return 0;
+ }
+diff --git a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+index 1f73832f34..a0ca9ef97f 100644
+--- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
++++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+@@ -45,6 +45,37 @@
+ 		regulator-max-microvolt = <1800000>;
+ 	};
+ 
++	/*
++	 * Front-panel LEDs (same wiring as the Linux DTS).  U-Boot drives
++	 * them from board_late_init so the user gets immediate feedback
++	 * instead of waiting for the Linux charger/LED drivers.
++	 */
++	leds {
++		compatible = "gpio-leds";
++		bootph-all;
++
++		led-power {
++			label = "z96a-led-power";
++			gpios = <&gpio0 RK_PD3 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
++			bootph-all;
++		};
++
++		led-charging {
++			label = "z96a-led-charging";
++			gpios = <&gpio0 RK_PD5 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
++			bootph-all;
++		};
++
++		led-full {
++			label = "z96a-led-full";
++			gpios = <&gpio0 RK_PD6 GPIO_ACTIVE_HIGH>;
++			default-state = "off";
++			bootph-all;
++		};
++	};
++
+ 	/* Z96A volume-up key (also Recovery on case silkscreen).
+ 	 * Wiring VERIFIED on real hardware 2026-09: SARADC ch0.
+ 	 * The factory Android DTB (boot-0.dts) declares ch2, but the

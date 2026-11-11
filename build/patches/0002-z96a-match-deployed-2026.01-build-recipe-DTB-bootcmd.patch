@@ -1,0 +1,51 @@
+From d783706f32f94c6bf77fd6cf1175f7dd8cdcef3c Mon Sep 17 00:00:00 2001
+From: z96a <z96a@local>
+Date: Tue, 10 Nov 2026 18:23:10 +0800
+Subject: [PATCH 2/5] z96a: match deployed 2026.01 build recipe (DTB, bootcmd,
+ version)
+
+---
+ configs/z96a-rk3568-laptop-v2_defconfig          |  5 +++++
+ .../src/arm64/rockchip/rk3568-z96a-laptop-v2.dts | 16 ++++++++++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/configs/z96a-rk3568-laptop-v2_defconfig b/configs/z96a-rk3568-laptop-v2_defconfig
+index 615fbe13ac..3ac33fa34d 100644
+--- a/configs/z96a-rk3568-laptop-v2_defconfig
++++ b/configs/z96a-rk3568-laptop-v2_defconfig
+@@ -128,3 +128,8 @@ CONFIG_BOOTMETH_SCRIPT=y
+ CONFIG_USB_STORAGE=y
+ CONFIG_USB_KEYBOARD=y
+ 
++# Reproduce the deployed 2026.01-armbian image: same bootcmd prefix
++# (early power GPIO pokes), explicit USB probe, then standard boot.
++# CONFIG_LOCALVERSION_AUTO is not set
++CONFIG_LOCALVERSION="armbian"
++CONFIG_BOOTCOMMAND="gpio set A6; gpio set E11; gpio set E9; gpio set C31; usb start; bootflow scan -lb"
+diff --git a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+index dce5620b24..1f73832f34 100644
+--- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
++++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
+@@ -137,6 +137,22 @@
+ 	status = "okay";
+ };
+ 
++/* Deployed 2026.01 image also enables the USB2 EHCI host controllers and
++ * usb2phy1 OTG port (USB2 keyboard / low-speed devices on the Type-A ports).
++ * Keep them enabled so a rebuilt U-Boot is behaviourally identical.
++ */
++&usb2phy1_otg {
++	status = "okay";
++};
++
++&usb_host0_ehci {
++	status = "okay";
++};
++
++&usb_host1_ehci {
++	status = "okay";
++};
++
+ &usb2phy0 {
+ 	status = "okay";
+ };
