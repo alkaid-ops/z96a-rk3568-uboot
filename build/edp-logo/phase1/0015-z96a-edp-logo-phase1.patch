@@ -412,10 +412,21 @@ index 30e6b90..07b32de 100644
  CONFIG_DM_RNG=y
  CONFIG_RNG_ROCKCHIP=y
 diff --git a/drivers/clk/rockchip/clk_rk3568.c b/drivers/clk/rockchip/clk_rk3568.c
-index 533031c..cd0e24d 100644
+index 533031c..11bd74b 100644
 --- a/drivers/clk/rockchip/clk_rk3568.c
 +++ b/drivers/clk/rockchip/clk_rk3568.c
-@@ -1820,7 +1820,11 @@ static ulong rk3568_dclk_vop_set_clk(struct rk3568_clk_priv *priv,
+@@ -62,6 +62,10 @@ static struct rockchip_pll_rate_table rk3568_pll_rates[] = {
+ 	RK3036_PLL_RATE(1000000000, 3, 250, 2, 1, 1, 0),
+ 	RK3036_PLL_RATE(912000000, 1, 76, 2, 1, 1, 0),
+ 	RK3036_PLL_RATE(816000000, 1, 68, 2, 1, 1, 0),
++#ifndef CONFIG_XPL_BUILD
++	/* 5 x 140.24 MHz: Z96A eDP panel pixel clock (EDID NV140FHD-N43) */
++	RK3036_PLL_RATE(701200000, 1, 29, 1, 1, 0, 3635063),
++#endif
+ 	RK3036_PLL_RATE(600000000, 1, 100, 4, 1, 1, 0),
+ 	RK3036_PLL_RATE(594000000, 1, 99, 4, 1, 1, 0),
+ 	RK3036_PLL_RATE(500000000, 1, 125, 6, 1, 1, 0),
+@@ -1820,7 +1824,11 @@ static ulong rk3568_dclk_vop_set_clk(struct rk3568_clk_priv *priv,
  			     ((div - 1) << DCLK0_VOP_DIV_SHIFT));
  		rk3568_pmu_pll_set_rate(priv, HPLL, div * rate);
  	} else if (sel == DCLK_VOP_SEL_VPLL) {
@@ -460,10 +471,10 @@ index 0420017..bd9993a 100644
  obj-$(CONFIG_PHY_ROCKCHIP_TYPEC)	+= phy-rockchip-typec.o
 diff --git a/drivers/phy/rockchip/phy-rockchip-naneng-edp.c b/drivers/phy/rockchip/phy-rockchip-naneng-edp.c
 new file mode 100644
-index 0000000..e972367
+index 0000000..1847b7a
 --- /dev/null
 +++ b/drivers/phy/rockchip/phy-rockchip-naneng-edp.c
-@@ -0,0 +1,437 @@
+@@ -0,0 +1,460 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (c) 2020 Rockchip Electronics Co. Ltd.
@@ -539,6 +550,7 @@ index 0000000..e972367
 +struct rockchip_edp_phy {
 +	struct regmap *grf;
 +	struct udevice *dev;
++	u8 lanes;
 +};
 +
 +static inline int rockchip_grf_write(struct regmap *grf, u32 reg, u32 mask,
@@ -622,7 +634,7 @@ index 0000000..e972367
 +
 +	u8 lane;
 +
-+	for (lane = 0; lane < dp->lanes; lane++)
++	for (lane = 0; lane < edpphy->lanes; lane++)
 +		rockchip_edp_phy_set_voltage(edpphy, dp, lane);
 +
 +	return 0;
@@ -692,8 +704,6 @@ index 0000000..e972367
 +
 +	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_PD_PLL,
 +			   FIELD_PREP(EDP_PHY_PD_PLL, 0));
-+	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_TX_PD,
-+			   FIELD_PREP(EDP_PHY_TX_PD, ~GENMASK(dp->lanes - 1, 0)));
 +	ret = regmap_read_poll_timeout(edpphy->grf, EDP_PHY_GRF_STATUS0,
 +				       value, value & PLL_RDY, 100, 1000);
 +	if (ret) {
@@ -703,8 +713,21 @@ index 0000000..e972367
 +
 +	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON5, EDP_PHY_TX_MODE,
 +			   FIELD_PREP(EDP_PHY_TX_MODE, 0x0));
++
++	return 0;
++}
++
++static int rockchip_edp_phy_set_lanes(struct rockchip_edp_phy *edpphy,
++				      struct phy_configure_opts_dp *dp)
++{
++	edpphy->lanes = dp->lanes;
++
++	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_TX_PD,
++			   FIELD_PREP(EDP_PHY_TX_PD,
++				      ~GENMASK(dp->lanes - 1, 0)));
 +	rockchip_grf_write(edpphy->grf, EDP_PHY_GRF_CON0, EDP_PHY_TX_IDLE,
-+			   FIELD_PREP(EDP_PHY_TX_IDLE, ~GENMASK(dp->lanes - 1, 0)));
++			   FIELD_PREP(EDP_PHY_TX_IDLE,
++				      ~GENMASK(dp->lanes - 1, 0)));
 +
 +	return 0;
 +}
@@ -726,15 +749,17 @@ index 0000000..e972367
 +		}
 +	}
 +
-+	/* Verify lane count. */
-+	switch (dp->lanes) {
-+	case 1:
-+	case 2:
-+	case 4:
-+		/* valid lane count. */
-+		break;
-+	default:
-+		return -EINVAL;
++	if (dp->set_lanes) {
++		/* Verify lane count. */
++		switch (dp->lanes) {
++		case 1:
++		case 2:
++		case 4:
++			/* valid lane count. */
++			break;
++		default:
++			return -EINVAL;
++		}
 +	}
 +
 +	/*
@@ -743,7 +768,7 @@ index 0000000..e972367
 +	 */
 +	if (dp->set_voltages) {
 +		/* Lane count verified previously. */
-+		for (i = 0; i < dp->lanes; i++) {
++		for (i = 0; i < edpphy->lanes; i++) {
 +			if (dp->voltage[i] > 3 || dp->pre[i] > 3)
 +				return -EINVAL;
 +
@@ -776,6 +801,15 @@ index 0000000..e972367
 +		if (ret) {
 +			dev_err(edpphy->dev,
 +				"rockchip_edp_phy_set_rate failed\n");
++			return ret;
++		}
++	}
++
++	if (dp->set_lanes) {
++		ret = rockchip_edp_phy_set_lanes(edpphy, dp);
++		if (ret) {
++			dev_err(edpphy->dev,
++				"rockchip_edp_phy_set_lanes failed\n");
 +			return ret;
 +		}
 +	}
@@ -1212,7 +1246,7 @@ index 0000000..d2383b2
 +	.flags = DM_FLAG_OS_PREPARE,
 +};
 diff --git a/drivers/video/rockchip/rk_edp.c b/drivers/video/rockchip/rk_edp.c
-index 0ba68db..4e9b22a 100644
+index 0ba68db..05e232a 100644
 --- a/drivers/video/rockchip/rk_edp.c
 +++ b/drivers/video/rockchip/rk_edp.c
 @@ -9,18 +9,23 @@
@@ -1249,12 +1283,13 @@ index 0ba68db..4e9b22a 100644
  };
  
  struct rockchip_dp_data {
-@@ -60,8 +66,12 @@ struct rk_edp_priv {
+@@ -60,8 +66,13 @@ struct rk_edp_priv {
  	struct udevice *panel;
  	struct link_train link_train;
  	u8 train_set[4];
 +	struct phy phy;
 +	enum rockchip_dp_types chip_type;
++	u32 bpc;
  };
  
 +static void rockchip_edp_force_hpd(struct rk_edp_priv *edp);
@@ -1262,7 +1297,7 @@ index 0ba68db..4e9b22a 100644
  static void rk_edp_init_refclk(struct rk3288_edp *regs, enum rockchip_dp_types chip_type)
  {
  	writel(SEL_24M, &regs->analog_ctl_2);
-@@ -173,6 +183,192 @@ static void rk_edp_init_aux(struct rk3288_edp *regs)
+@@ -173,6 +184,207 @@ static void rk_edp_init_aux(struct rk3288_edp *regs)
  	clrbits_le32(&regs->func_en_2, AUX_FUNC_EN_N);
  }
  
@@ -1385,6 +1420,21 @@ index 0ba68db..4e9b22a 100644
 +	clrbits_le32(&regs->func_en_2, AUX_FUNC_EN_N);
 +}
 +
++static u32 rk_edp_bpc_bits(u32 bpc)
++{
++	switch (bpc) {
++	case 6:
++		return IN_BPC_6_BITS;
++	case 10:
++		return IN_BPC_10_BITS;
++	case 12:
++		return IN_BPC_12_BITS;
++	case 8:
++	default:
++		return IN_BPC_8_BITS;
++	}
++}
++
 +static void rk3568_edp_init_controller(struct rk_edp_priv *priv)
 +{
 +	struct rk3288_edp *regs = priv->regs;
@@ -1398,9 +1448,9 @@ index 0ba68db..4e9b22a 100644
 +	rk3568_edp_init_analog_func(regs);
 +	rk3568_edp_init_aux(regs);
 +
-+	/* 6 bpc, RGB, VESA range -- matches the BOE NV140FHM-N43 panel. */
-+	writel(IN_D_RANGE_VESA | IN_BPC_6_BITS | IN_COLOR_F_RGB,
-+	       &regs->video_ctl_2);
++	/* Panel bpc, RGB, VESA range (Z96A panel EDID: 8 bpc). */
++	writel(IN_D_RANGE_VESA | rk_edp_bpc_bits(priv->bpc) |
++	       IN_COLOR_F_RGB, &regs->video_ctl_2);
 +}
 +
 +static int rk3568_edp_probe(struct udevice *dev, struct rk_edp_priv *priv)
@@ -1455,7 +1505,7 @@ index 0ba68db..4e9b22a 100644
  static int rk_edp_aux_enable(struct rk3288_edp *regs)
  {
  	ulong start;
-@@ -345,22 +541,61 @@ static int rk_edp_link_power_up(struct rk_edp_priv *edp)
+@@ -345,22 +557,62 @@ static int rk_edp_link_power_up(struct rk_edp_priv *edp)
  
  static int rk_edp_link_configure(struct rk_edp_priv *edp)
  {
@@ -1478,6 +1528,7 @@ index 0ba68db..4e9b22a 100644
 +				 LINK_RATE_1_62GBPS ? 1620 : 2700;
 +		opts.lanes = edp->link_train.lane_count;
 +		opts.set_rate = true;
++		opts.set_lanes = true;
 +		opts.ssc = true;
 +
 +		ret = generic_phy_configure(&edp->phy, &opts);
@@ -1522,7 +1573,7 @@ index 0ba68db..4e9b22a 100644
  }
  
  static u8 edp_link_status(const u8 *link_status, int r)
-@@ -503,7 +738,9 @@ static int rk_edp_link_train_cr(struct rk_edp_priv *edp)
+@@ -503,7 +755,9 @@ static int rk_edp_link_train_cr(struct rk_edp_priv *edp)
  	voltage = 0xff;
  
  	while (1) {
@@ -1533,7 +1584,7 @@ index 0ba68db..4e9b22a 100644
  		ret = rk_edp_dpcd_write(regs, DPCD_TRAINING_LANE0_SET,
  					edp->train_set,
  					edp->link_train.lane_count);
-@@ -579,7 +816,9 @@ static int rk_edp_link_train_ce(struct rk_edp_priv *edp)
+@@ -579,7 +833,9 @@ static int rk_edp_link_train_ce(struct rk_edp_priv *edp)
  	/* channel equalization loop */
  	channel_eq = 0;
  	for (tries = 0; tries < 5; tries++) {
@@ -1544,14 +1595,14 @@ index 0ba68db..4e9b22a 100644
  		ret = rk_edp_dpcd_write(regs, DPCD_TRAINING_LANE0_SET,
  					edp->train_set,
  					edp->link_train.lane_count);
-@@ -893,7 +1132,17 @@ static int rk_edp_config_video(struct rk_edp_priv *edp)
+@@ -893,7 +1149,17 @@ static int rk_edp_config_video(struct rk_edp_priv *edp)
  
  	rk_edp_config_video_slave_mode(edp->regs);
  
 -	if (!rk_edp_get_pll_locked(edp->regs)) {
 +	if (edp->chip_type == RK3568_EDP)
-+		writel(IN_D_RANGE_VESA | IN_BPC_6_BITS | IN_COLOR_F_RGB,
-+		       &edp->regs->video_ctl_2);
++		writel(IN_D_RANGE_VESA | rk_edp_bpc_bits(edp->bpc) |
++		       IN_COLOR_F_RGB, &edp->regs->video_ctl_2);
 +
 +	/*
 +	 * RK3568's main-link PLL is in the external Naneng PHY.  Linux
@@ -1563,7 +1614,7 @@ index 0ba68db..4e9b22a 100644
  		debug("PLL is not locked yet.\n");
  		return -ETIMEDOUT;
  	}
-@@ -974,6 +1223,11 @@ static int rk_edp_enable(struct udevice *dev, int panel_bpp,
+@@ -974,6 +1240,11 @@ static int rk_edp_enable(struct udevice *dev, int panel_bpp,
  		printf("config video failed\n");
  		return ret;
  	}
@@ -1575,11 +1626,12 @@ index 0ba68db..4e9b22a 100644
  	ret = panel_enable_backlight(priv->panel);
  	if (ret) {
  		debug("%s: backlight error: %d\n", __func__, ret);
-@@ -1064,6 +1318,11 @@ static int rk_edp_probe(struct udevice *dev)
+@@ -1064,6 +1335,12 @@ static int rk_edp_probe(struct udevice *dev)
  		return ret;
  	}
  
 +	priv->chip_type = edp_data->chip_type;
++	priv->bpc = dev_read_u32_default(dev, "bpc", 8);
 +
 +	if (priv->chip_type == RK3568_EDP)
 +		return rk3568_edp_probe(dev, priv);
@@ -1587,7 +1639,7 @@ index 0ba68db..4e9b22a 100644
  	ret = reset_get_by_name(dev, "dp", &dp_rst);
  	if (ret) {
  		ret = reset_get_by_name(dev, "edp", &dp_rst);
-@@ -1129,8 +1388,17 @@ static int rk_edp_probe(struct udevice *dev)
+@@ -1129,8 +1406,17 @@ static int rk_edp_probe(struct udevice *dev)
  	return 0;
  }
  
@@ -1605,7 +1657,7 @@ index 0ba68db..4e9b22a 100644
  	.enable = rk_edp_enable,
  };
  
-@@ -1142,6 +1410,10 @@ static const struct rockchip_dp_data rk3399_edp = {
+@@ -1142,6 +1428,10 @@ static const struct rockchip_dp_data rk3399_edp = {
  	.chip_type = RK3399_EDP,
  };
  
@@ -1616,7 +1668,7 @@ index 0ba68db..4e9b22a 100644
  static const struct rockchip_dp_data rk3288_dp = {
  	.reg_vop_big_little = RK3288_GRF_SOC_CON6,
  	.reg_vop_big_little_sel = BIT(5),
-@@ -1154,6 +1426,7 @@ static const struct udevice_id rockchip_dp_ids[] = {
+@@ -1154,6 +1444,7 @@ static const struct udevice_id rockchip_dp_ids[] = {
  	{ .compatible = "rockchip,rk3288-dp", .data = (ulong)&rk3288_dp },
  	{ .compatible = "rockchip,rk3288-edp", .data = (ulong)&rk3288_dp },
  	{ .compatible = "rockchip,rk3399-edp", .data = (ulong)&rk3399_edp },
@@ -1626,10 +1678,10 @@ index 0ba68db..4e9b22a 100644
  
 diff --git a/drivers/video/rockchip/rk_vop2.c b/drivers/video/rockchip/rk_vop2.c
 new file mode 100644
-index 0000000..5a815cd
+index 0000000..5fbfdfa
 --- /dev/null
 +++ b/drivers/video/rockchip/rk_vop2.c
-@@ -0,0 +1,558 @@
+@@ -0,0 +1,563 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * Copyright (c) 2024 - 2025 Dang Huynh <dang.huynh@mainlining.org>
@@ -1794,6 +1846,7 @@ index 0000000..5a815cd
 +	struct rk_vop2_priv *priv = dev_get_priv(dev);
 +	struct rk3568_vop_sysctrl *sysctrl = priv->regs + VOP2_SYSREG_OFFSET;
 +	struct rk3568_vop_esmart *esmart;
++	struct rk3568_vop_post *post;
 +
 +	/*
 +	 * If the plane was enabled but link training or panel enable failed,
@@ -1806,8 +1859,12 @@ index 0000000..5a815cd
 +		writel(0, &esmart->esmart_region0_mst_ctl);
 +	}
 +
-+	if (priv->vp >= 0)
++	if (priv->vp >= 0) {
++		post = priv->regs + VOP2_POST_OFFSET(priv->vp);
++		clrsetbits_le32(&post->dsp_ctrl, M_POST_STANDBY,
++				V_POST_STANDBY(1));
 +		rkvop2_cfg_regdone(sysctrl, priv->vp);
++	}
 +}
 +
 +static void rkvop2_set_pin_polarity(struct udevice *dev,
@@ -2272,7 +2329,7 @@ index 0000000..847edd6
 +
 +#endif
 diff --git a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
-index 6e5e2cf..d194774 100644
+index 6e5e2cf..6b6cfce 100644
 --- a/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
 +++ b/dts/upstream/src/arm64/rockchip/rk3568-z96a-laptop-v2.dts
 @@ -12,6 +12,7 @@
@@ -2295,7 +2352,7 @@ index 6e5e2cf..d194774 100644
 +	 */
 +	backlight: backlight {
 +		compatible = "pwm-backlight";
-+		default-brightness-level = <255>;
++		default-brightness-level = <220>;
 +		enable-gpios = <&gpio2 RK_PD5 GPIO_ACTIVE_HIGH>;
 +		pwms = <&pwm9 0 25000 0>;
 +	};
@@ -2309,16 +2366,16 @@ index 6e5e2cf..d194774 100644
 +			native-mode = <&panel_timing>;
 +
 +			panel_timing: timing0 {
-+				clock-frequency = <139800000>;
++				clock-frequency = <140240000>;
 +				hactive = <1920>;
 +				vactive = <1080>;
 +				hfront-porch = <48>;
 +				hsync-len = <32>;
-+				hback-porch = <80>;
++				hback-porch = <124>;
 +				vfront-porch = <3>;
-+				vsync-len = <5>;
-+				vback-porch = <32>;
-+				hsync-active = <0>;
++				vsync-len = <6>;
++				vback-porch = <11>;
++				hsync-active = <1>;
 +				vsync-active = <0>;
 +				de-active = <1>;
 +				pixelclk-active = <0>;
@@ -2339,7 +2396,7 @@ index 6e5e2cf..d194774 100644
  };
  
  &uart2 {
-@@ -196,3 +246,53 @@
+@@ -196,3 +246,54 @@
  &usb2phy1_host {
  	status = "okay";
  };
@@ -2358,6 +2415,7 @@ index 6e5e2cf..d194774 100644
 +&edp {
 +	status = "okay";
 +	force-hpd;
++	bpc = <8>;
 +	rockchip,panel = <&panel>;
 +};
 +
@@ -2382,7 +2440,7 @@ index 6e5e2cf..d194774 100644
 +	status = "disabled";
 +
 +	assigned-clocks = <&cru DCLK_VOP1>, <&cru PLL_VPLL>;
-+	assigned-clock-rates = <139800000>, <699000000>;
++	assigned-clock-rates = <140240000>, <701200000>;
 +	assigned-clock-parents = <&cru PLL_VPLL>;
 +};
 +
