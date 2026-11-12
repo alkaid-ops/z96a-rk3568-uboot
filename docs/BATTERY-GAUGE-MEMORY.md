@@ -116,6 +116,27 @@ bq257xx-fgu:   voltage_now=8,320,000uV, current_now=640,000uA
    `7.2.12 SMP preempt mod_unload aarch64`），安装后重启；
 9. 验证通过再移除 `blacklist-rk817-gauge.conf`，重新启用 DTB 节点和 0020。
 
+## 已实现（2026-11-13，未安装/未验证）
+
+- `0021-z96a-rk809-2s-gauge.patch`：给 mainline `rk817_charger.c` 加 RK809/2S 分支
+  （`RK809_ID`、`600..1050mV` 校准、`bat_res_up/down` 分压、2S sanity、电流状态）。
+- `0022-z96a-battery-5000mah-divider.patch`：`simple-battery` 改 5000mAh，
+  `charger` 节点加 `rockchip,bat-res-up = <140>`、`bat-res-down = <20>`。
+- 已用当前 7.2.12 的 `/proc/config.gz` 编出模块，vermagic 匹配：
+  `7.2.12 SMP preempt mod_unload aarch64`。
+- 已生成 DTB 产物（基于当前 live `f06d` + `charger`/分压/5000mAh，保留用户 0018/0019）。
+- 产物目录：
+
+```text
+rea-z97a/build/out/rk817-gauge/
+  rk817_charger-rk809-2s.ko
+  rk3568-sunniwell-z96a-typec-gauge-v2.dtb
+  INSTALL-NOTES.md
+```
+
+- **尚未替换 `.84` 的任何模块/DTB，也未重启验证。** 等用户明确说“开始”再按
+  `INSTALL-NOTES.md` 执行。
+
 ## 验证清单
 
 ```bash
