@@ -136,6 +136,16 @@ bq257xx-fgu:   voltage_now=8,320,000uV, current_now=640,000uA
   不再把两块“电池”叠加成 83Wh / 99%。
 - 仍需一个完整充放电周期观察库仑计长期漂移。
 
+## 托盘显示
+
+- 电池图标来自自定义 `z96a-system-tray`，不是 LXQt 自带插件。
+- 默认设备已从 `/sys/class/power_supply/bq257xx-fgu` 改为
+  `/sys/class/power_supply/rk817-battery`；`Z96A_BATTERY_DEVICE` 仍可覆盖。
+- `lxqt-powermanagement` 的 `enableBatteryWatcher=false` 应保持关闭，
+  否则会出现重复电池图标；它只负责电源动作。
+- 2026-11-13 放电跟踪：`rk817-battery` 97% / 8.179V / -773mA，
+  upower 99→98→97% 连续下降，说明库仑计在正常积分。
+
 ## 构建产物
 
 ```text
