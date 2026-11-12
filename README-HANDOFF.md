@@ -59,6 +59,7 @@ ccaf267be51c98a69cd76a38b20778666e14e52eb18aed7adbea053895ad8c93  /boot/rockchip
 ## 3. 安全约束
 
 **必须先读 `docs/CHARGER-VERIFIED-MEMORY.md`。** 它是充电问题的当前权威快照。
+**做电池电量计/库仑计前必须先读 `docs/BATTERY-GAUGE-MEMORY.md`。**
 
 用户已明确取消所有充电定时和自动恢复服务；没有新的明确授权，不得恢复：
 
@@ -277,6 +278,7 @@ z96a_factory_charge_animation()   # 仅在证据支持时
 README-HANDOFF.md
 docs/
   CHARGER-VERIFIED-MEMORY.md                 # 权威快照，先读
+  BATTERY-GAUGE-MEMORY.md                    # RK809/2S 电量计已核实记录
   CHARGER-ROOT-CAUSE-STATUS-20261110.md
   CHARGER-RUNTIME-RECOVERY.md
   VENDOR-UBOOT-ANALYSIS.md                   # 原厂 U-Boot 详细静态分析
