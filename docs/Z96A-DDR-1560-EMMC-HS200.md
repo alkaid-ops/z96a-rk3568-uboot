@@ -272,11 +272,12 @@ build/recovery-20261111/MiniLoaderAll.bin         3750caaf...
    - 结果：下次 Armbian 重建会再次生成 1184MHz idbloader，与当前 live 1560MHz 不一致。
    - 修复：删除/改名这两个 1184 blob，或把覆盖分支改为原厂 v1.13 blob。
 
-2. **WiFi SDIO 速度**（高优先级，性能差异明显）
+2. **WiFi SDIO 速度**（已验证：1.8V / 200MHz SDR104）
    - 原厂 `dwmmc@fe2c0000`：`max-frequency = 0xbebc200`（200MHz），有 `sd-uhs-sdr104`。
-   - mainline：`max-frequency = 0x2faf080`（50MHz），**没有 `sd-uhs-sdr104`**。
-   - 影响：WiFi 吞吐可能只有原厂的四分之一左右。mainline 还可能缺 `vmmc/vqmmc` 的对应配置（mainline 有 supply，vendor 用 `mmc-pwrseq`）。
-   - 建议：把 mainline WiFi 节点改为 200MHz + `sd-uhs-sdr104`，保留 `keep-power-in-suspend`/`cap-sdio-irq`，验证 RTL8822CS 稳定性。
+   - 旧 mainline：`max-frequency = 0x2faf080`（50MHz），没有 `sd-uhs-sdr104`；直接加 200MHz/SDR104 会 CMD11 超时并回落 50MHz。
+   - 根因：RTL8822CS 在 1.8V 下误报 S18A=1，内核发出无意义的 CMD11；同时 `vccio_sd` 固定 3.3V，1.8V 切换无法完成。
+   - 已验证方案：`vccio_sd` 固定 1.8V + `vqmmc = &vccio_sd` + 200MHz/SDR104；内核加“1.8V 时跳过 CMD11”和“UHS 失败回退”补丁。实测 `Bus speed = 200MHz`、`tuned phase 122–126`、5G 局域网 16.6–18.0 MB/s。
+   - 细节见镜像仓库 `boards/z96a-v2/docs/VENDOR-ALIGNMENT.md` 第 3 节。
 
 3. **充电器 / 电池属性**（高优先级，涉及安全）
    - 原厂 `sc8886@6b` 使用 `southchip,sc8886`，带完整参数：`ti,charge-current = 0xf4240`（1A）、`ti,max-charge-voltage = 0x803c20`（8.4V，2S）、`ti,max-input-current`、SDP/DCP/CDP 电流、`ti,minimum-sys-voltage`、OTG 电压/电流、NTC 表、温度通道。
