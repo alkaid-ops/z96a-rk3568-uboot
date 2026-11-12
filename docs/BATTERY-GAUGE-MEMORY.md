@@ -116,26 +116,34 @@ bq257xx-fgu:   voltage_now=8,320,000uV, current_now=640,000uA
    `7.2.12 SMP preempt mod_unload aarch64`），安装后重启；
 9. 验证通过再移除 `blacklist-rk817-gauge.conf`，重新启用 DTB 节点和 0020。
 
-## 已实现（2026-11-13，未安装/未验证）
+## 已验证（2026-11-13）
 
 - `0021-z96a-rk809-2s-gauge.patch`：给 mainline `rk817_charger.c` 加 RK809/2S 分支
   （`RK809_ID`、`600..1050mV` 校准、`bat_res_up/down` 分压、2S sanity、电流状态）。
 - `0022-z96a-battery-5000mah-divider.patch`：`simple-battery` 改 5000mAh，
   `charger` 节点加 `rockchip,bat-res-up = <140>`、`bat-res-down = <20>`。
-- 已用当前 7.2.12 的 `/proc/config.gz` 编出模块，vermagic 匹配：
-  `7.2.12 SMP preempt mod_unload aarch64`。
-- 已生成 DTB 产物（基于当前 live `f06d` + `charger`/分压/5000mAh，保留用户 0018/0019）。
-- 产物目录：
+- `0024-z96a-rk809-battery-present.patch`：RK809 的 `BAT_EXS` 不可靠，强制
+  `battery_present = true`；否则满电校准不跑，容量会停在 5%。
+- 已安装 `0021 + 0024` 编出的 `rk817_charger.ko`（vermagic
+  `7.2.12 SMP preempt mod_unload aarch64`）和基于当前 `f06d` 的
+  `...-gauge-v2.dtb`；`blacklist-rk817-gauge.conf` 已禁用/移除。
+- 实测：
+  `rk817-battery present=1 status=Full capacity=100 voltage_avg=8.387V
+  current_avg≈69–75mA charge_full=5Ah`
+- `bq257xx-charger` 仍在充电（约 64mA）；`bq257xx-fgu`（电压 OCV）已 unbind
+  并在 `/etc/modprobe.d/blacklist-bq257xx-fgu.conf` 永久 blacklist。
+- upower 只剩一块 `battery_rk817_battery`：100% / 42.02Wh / 8.387V；
+  不再把两块“电池”叠加成 83Wh / 99%。
+- 仍需一个完整充放电周期观察库仑计长期漂移。
+
+## 构建产物
 
 ```text
 rea-z97a/build/out/rk817-gauge/
-  rk817_charger-rk809-2s.ko
+  rk817_charger-rk809-2s.ko        # v2（0021 + 0024），当前 .84 已安装
   rk3568-sunniwell-z96a-typec-gauge-v2.dtb
   INSTALL-NOTES.md
 ```
-
-- **尚未替换 `.84` 的任何模块/DTB，也未重启验证。** 等用户明确说“开始”再按
-  `INSTALL-NOTES.md` 执行。
 
 ## 验证清单
 
