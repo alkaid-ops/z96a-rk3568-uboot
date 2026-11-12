@@ -1,0 +1,19 @@
+--- a/drivers/video/rockchip/rk3568_vop.c
++++ b/drivers/video/rockchip/rk3568_vop.c
+@@ -289,7 +289,14 @@
+ 	/*
+ 	 * No DM_FLAG_PRE_RELOC: the Z96A logo path binds this driver only
+ 	 * after the USB scan has returned, so USB boots never probe VOP2.
+-	 * DM_FLAG_OS_PREPARE makes the plane cleanup run before Linux.
++	 *
++	 * Z96A: deliberately NOT DM_FLAG_OS_PREPARE.  With that flag the
++	 * bootm path calls dm_remove_devices_active() and our .remove would
++	 * disable the plane right before the kernel starts, blanking the
++	 * boot logo for the whole handover.  Linux no longer attaches the
++	 * VOP2 IOMMU (that node is disabled in the board device tree), so
++	 * leaving the plane enabled is safe and keeps the logo scanning
++	 * until the Linux display driver takes over.
+ 	 */
+-	.flags = DM_FLAG_OS_PREPARE,
++	.flags = 0,
+ };
