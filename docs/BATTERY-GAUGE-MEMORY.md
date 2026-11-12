@@ -146,6 +146,15 @@ bq257xx-fgu:   voltage_now=8,320,000uV, current_now=640,000uA
 - 2026-11-13 放电跟踪：`rk817-battery` 97% / 8.179V / -773mA，
   upower 99→98→97% 连续下降，说明库仑计在正常积分。
 
+## 其他消费者（同步改过）
+
+- `z96a-charge-led`：`BAT=/sys/class/power_supply/rk817-battery`，
+  `CHG=/sys/class/power_supply/bq257xx-charger`；AC 在线 ≥90% 绿、
+  <90% 红、拔掉灭。2026-11-13 实测 online=1 / 91% → green=1、red=0。
+- `z96a-hotkey` 电池状态（F9）：读 `rk817-battery` 的
+  `capacity/status/voltage_avg`，不再读已停用的 `bq257xx-fgu`。
+- `z96a-system-tray`：`BATTERY_DEVICE=rk817-battery`，托盘自绘电池图标。
+
 ## 构建产物
 
 ```text
