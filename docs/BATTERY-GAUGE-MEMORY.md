@@ -171,6 +171,30 @@ bq257xx-fgu:   voltage_now=8,320,000uV, current_now=640,000uA
 4. `/etc/init.d/z96a-charge-led`：启动时跑一次 `--once`，不再
    `start-stop-daemon --background` 常驻。
 
+### 真机验证（2026-11-13，`.84` eMMC 夜间镜像）
+
+环境：Devuan 6 / SysV init / **eudev 3.2.14**（不是 systemd）/ 内核 7.2.12。
+该镜像的 DTB 已与 `gauge-v2` 完全相同（sha256
+`03b800af...`），包含 2S、5000mAh、`bat-res-up=140` / `down=20`。
+
+- 换入 `0021+0022+0024+0025` 模块后：`present=1`、`Full`、`100%`、
+  `8.389V`、`charge_now=5000000`；upower 只剩
+  `battery_rk817_battery`（100%）。
+- `bq257xx_fuel_gauge` 已 unbind + rmmod，且
+  `/etc/modprobe.d/blacklist-bq257xx-fgu.conf` 生效，下次启动不再加载。
+- 无 2 秒守护进程；`pgrep` 无 `z96a-charge-led` 常驻进程。
+- 45 秒 `udevadm monitor` 在满电静置时**没有** 8 秒周期性 uevent，说明
+  门控生效。
+- 卸载/重载 `rk817_charger` 时，驱动 monitor 主动发出
+  `rk817-battery` 的 `change`（capacity=100/status=Full），LED 保持
+  `green=1 red=0`；规则和 one-shot 真实执行。
+- 红灯路径：`Z96A_CHARGE_LED_THRESHOLD=101 --once` → `green=0 red=1`；
+  离线路径：`Z96A_CHG` 指向 `online=0` 的假节点 → 两灯灭；随后
+  `--once` 恢复正常。
+- 托盘重启后显示「电池 100% · 已充满 · 电池温度 18°C」。
+- `z96a-hotkey` 已改为读 `rk817-battery` 的
+  `capacity/status/voltage_avg`，脚本语法检查通过。
+
 Devuan 用 **eudev + SysV init**，不是 systemd；`RUN+=` 由 eudev 的 `udevd`
 执行，不需要 systemd-udevd 或 systemd timer。
 
