@@ -155,22 +155,30 @@ bq257xx-fgu:   voltage_now=8,320,000uV, current_now=640,000uA
   `capacity/status/voltage_avg`，不再读已停用的 `bq257xx-fgu`。
 - `z96a-system-tray`：`BATTERY_DEVICE=rk817-battery`，托盘自绘电池图标。
 
-## 已知待优化：LED 轮询 -> 事件驱动
+## 事件驱动充电灯（2026-11-13 实现）
 
-当前 `z96a-charge-led` 是 `while :; ...; sleep 2` 的 2 秒轮询，用户明确要求
-先把这一版落仓库，事件驱动推到下一版本。
+当前 `z96a-charge-led` 不再轮询；驱动、eudev、脚本、init.d 四层配合：
 
-下一版本方案（已验证 `rk817_charger.c` 已有 `power_supply_changed` 调用点，
-`rk817_charging_monitor` 每 8 秒采样）：
+1. `0025-z96a-rk817-charge-led-events.patch`：`rk817_charging_monitor`
+   仍每 8 秒采样，但只在**整数 capacity**（`(soc+500)/1000`）或
+   `charge_status` 变化时调用 `power_supply_changed(bat_ps)`。
+   不能比较原始 `soc`（0.001% 分辨率，8 秒必变），否则退化成 8 秒通知。
+2. `/etc/udev/rules.d/99-z96a-charge-led.rules`：eudev 匹配
+   `power_supply` 的 `add|change`，`KERNEL=="rk817-battery|bq257xx-charger"`，
+   `RUN+="/usr/local/sbin/z96a-charge-led --once"`。
+3. `z96a-charge-led`：默认 one-shot；`--watch` 仅保留为调试用的 2 秒轮询。
+   `wait_for_hw` 最多等 10 秒后退出，避免 boot 时卡住 init。
+4. `/etc/init.d/z96a-charge-led`：启动时跑一次 `--once`，不再
+   `start-stop-daemon --background` 常驻。
 
-1. 驱动在 `rk817_charging_monitor` 中检测 `soc` / `charge_status` 变化，
-   变化时才调用 `power_supply_changed()`；plug in/out ISR 已有调用。
-2. 新增 `/etc/udev/rules.d/99-z96a-charge-led.rules`，监听
-   `rk817-battery` / `bq257xx-charger` 的 `add`/`change`，调用一次
-   `z96a-charge-led --once`。
-3. `z96a-charge-led` 去掉常驻循环，保留 `--once` 单次判断。
-4. init.d 启动时只跑一次 `--once`，之后完全靠 udev。
-5. 可用 live unbind/rmmod/insmod/bind 替换 `rk817_charger.ko` 验证，不需重启。
+Devuan 用 **eudev + SysV init**，不是 systemd；`RUN+=` 由 eudev 的 `udevd`
+执行，不需要 systemd-udevd 或 systemd timer。
+
+阈值响应：插拔由 IRQ 立即触发；90% 阈值最多等驱动下一个 8 秒采样。
+正常放电约每 1%（~3.4 分钟）一次事件，不再每 2 秒唤醒。
+
+构建产物：`rea-z97a/build/out/rk817-led-events/rk817_charger-rk809-2s-events.ko`
+（vermagic `7.2.12 SMP preempt mod_unload aarch64`）。
 
 ## 构建产物
 
