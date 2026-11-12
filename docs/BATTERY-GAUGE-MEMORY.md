@@ -155,6 +155,23 @@ bq257xx-fgu:   voltage_now=8,320,000uV, current_now=640,000uA
   `capacity/status/voltage_avg`，不再读已停用的 `bq257xx-fgu`。
 - `z96a-system-tray`：`BATTERY_DEVICE=rk817-battery`，托盘自绘电池图标。
 
+## 已知待优化：LED 轮询 -> 事件驱动
+
+当前 `z96a-charge-led` 是 `while :; ...; sleep 2` 的 2 秒轮询，用户明确要求
+先把这一版落仓库，事件驱动推到下一版本。
+
+下一版本方案（已验证 `rk817_charger.c` 已有 `power_supply_changed` 调用点，
+`rk817_charging_monitor` 每 8 秒采样）：
+
+1. 驱动在 `rk817_charging_monitor` 中检测 `soc` / `charge_status` 变化，
+   变化时才调用 `power_supply_changed()`；plug in/out ISR 已有调用。
+2. 新增 `/etc/udev/rules.d/99-z96a-charge-led.rules`，监听
+   `rk817-battery` / `bq257xx-charger` 的 `add`/`change`，调用一次
+   `z96a-charge-led --once`。
+3. `z96a-charge-led` 去掉常驻循环，保留 `--once` 单次判断。
+4. init.d 启动时只跑一次 `--once`，之后完全靠 udev。
+5. 可用 live unbind/rmmod/insmod/bind 替换 `rk817_charger.ko` 验证，不需重启。
+
 ## 构建产物
 
 ```text
