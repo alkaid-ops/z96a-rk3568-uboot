@@ -357,3 +357,53 @@ I/O error, dev mmcblk0, sector 60020736 op 0x1:(WRITE) ...
 - 更像 dwcmshc tuning / HS400 采样窗口 / PCB 信号裕量，而不是颗粒不支持；
 - eMMC 测试区已用备份恢复，hash 校验一致；当前 DTB 已恢复 HS200/200MHz；
 - 在没有 U-Boot/vendor tuning 或硬件信号改善前，继续使用 HS200。
+
+### 6.1 HS400 @100MHz 专项测试（2026-11-13）
+
+只把 `mmc@fe310000` 的 `max-frequency` 从 200MHz 改为 100MHz，
+保留同一份 HS400 + ES 基线，不改 drive/bias/其他控制器。
+
+启动后实际运行 DTB：
+
+```text
+mmc@fe310000:
+  max-frequency = 100MHz
+  mmc-hs400-1_8v
+  mmc-hs400-enhanced-strobe
+```
+
+`/sys/kernel/debug/mmc0/ios`：
+
+```text
+clock:        100000000 Hz
+actual clock: 100000000 Hz
+bus width:    8 bits
+timing spec:  10 (mmc HS400 enhanced strobe)
+signal:       1.80 V
+```
+
+结果：
+
+| 项目 | HS200 @200MHz | HS400 ES @100MHz |
+|---|---|---|
+| 协商 | HS200 | HS400 Enhanced strobe |
+| 实际时钟 | 200MHz | 100MHz |
+| 512MiB 顺序读 | 141 MB/s | 92.8 MB/s |
+| 512MiB direct write | 68.5 MB/s，hash 一致 | **第一笔即 I/O error，0 字节** |
+| hash 回读 | 通过 | 无法完成（写入失败） |
+
+dmesg：
+
+```text
+I/O error, dev mmcblk0, sector 60020736 op 0x1:(WRITE) ...
+I/O error, dev mmcblk0, sector 60021760 op 0x1:(WRITE) ...
+```
+
+没有 CRC/timeout 报错，只有写 I/O error。
+
+额外发现：这块板 U-Boot 实际从 **eMMC p1** 读取 `/boot/rockchip/*.dtb`，
+不是 USB root 的 `/boot`。因此测试 DTB 临时写入 eMMC p1；测试后已恢复
+`03b800af...` 原 DTB，eMMC p2 仍不挂载，测试区 hash 恢复原值。
+
+结论：即使把 HS400 降到 100MHz，写入仍立即失败，而且读速度低于
+HS200@200MHz；HS400 在这块板/主线组合下没有可用收益，保持 HS200。
