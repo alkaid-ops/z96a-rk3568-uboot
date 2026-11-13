@@ -331,3 +331,29 @@ build/recovery-20261111/MiniLoaderAll.bin         3750caaf...
 1. 先修构建默认 DDR：删除/改名 1184 blob，确保重建仍是原厂 v1.13 1560。
 2. 再评估 WiFi 200MHz/SDR104 和充电器参数（这两项影响最直接）。
 3. NPU/OPP/GPU power-model、SPI flash、背光曲线、eDP/音频按需求逐步处理。
+
+## 6. HS400 再测试（2026-11-13，USB root）
+
+在 USB Devuan root（`/dev/sda2`）下，eMMC 完全不挂载，只做裸盘测试。
+测试区域为 eMMC p2 末尾 512MiB（`skip=28795`），先备份到 USB 根再写回。
+
+| DTB 配置 | 协商结果 | 顺序读 | 顺序写 |
+|---|---|---|---|
+| HS400 + enhanced strobe | `HS400 Enhanced strobe` | 219 MB/s | 第一笔 512MiB direct write 即 I/O error，0 字节 |
+| HS400（无 ES） | `HS400` | — | 同样第一笔写 I/O error |
+| HS400 + ES + emmc-datastrobe `bias-pull-down` | `HS400 Enhanced strobe` | — | 同样第一笔写 I/O error |
+| HS200（当前） | `HS200` | 141 MB/s | 68.5 MB/s，512MiB 写后读回 hash 完全一致 |
+
+错误日志形态：
+
+```text
+I/O error, dev mmcblk0, sector 60020736 op 0x1:(WRITE) ...
+```
+
+结论：
+
+- HS400 协商和读通路正常，**写通路在当前板/主线组合下不稳定**；
+- 单独给 strobe 加 pull-down 没有解决问题；
+- 更像 dwcmshc tuning / HS400 采样窗口 / PCB 信号裕量，而不是颗粒不支持；
+- eMMC 测试区已用备份恢复，hash 校验一致；当前 DTB 已恢复 HS200/200MHz；
+- 在没有 U-Boot/vendor tuning 或硬件信号改善前，继续使用 HS200。
