@@ -14,12 +14,24 @@
 
 ```sh
 git checkout 8e474aa605a86de64316ba6da8dc089402976380
-git apply 0016-z96a-edp-logo-final.patch
-git apply 0017-z96a-keep-vop-scanout.patch
+
+# fitfix-v4（2026-11-16 定版，当前推荐）：单独应用 0018
+git apply 0018-z96a-nov16-bootfb-and-gating.patch
+
+# 复现旧版时才用 0016 + 0017（fitfix-v2 / v3）
+# git apply 0016-z96a-edp-logo-final.patch
+# git apply 0017-z96a-keep-vop-scanout.patch
 ```
 
-`0017`：去掉 `rk3568_vop` 的 `DM_FLAG_OS_PREPARE`，交接时不再置 VP1 POST STANDBY，
-消除 U-Boot→Linux 的链路重锁黑屏（fitfix-v3）。
+补丁关系：
+
+| 补丁 | 对应版本 | 说明 |
+|---|---|---|
+| `0016-z96a-edp-logo-final.patch` | fitfix-v2 | eDP LOGO 引导链 |
+| `0017-z96a-keep-vop-scanout.patch` | fitfix-v3 | `.flags = 0`，交接不关输出 |
+| `0018-z96a-nov16-bootfb-and-gating.patch` | **fitfix-v4** | **完整补丁（取代 0016+0017）**：eDP LOGO + bootfb（simple-framebuffer 交接）+ U 盘优先/充电门控 + 早期 LED + `flags = 0` |
+
+`0018` 从干净基线 `8e474aa6` 单独应用即可，已验证应用后源码树与原始构建树逐文件一致。
 
 补丁包含 Phase 1（显示栈移植）与 Phase 2（LOGO 运行时加载、背光延迟、启动提速）
 的最终态，共 24 个文件。它**取代**了早期的

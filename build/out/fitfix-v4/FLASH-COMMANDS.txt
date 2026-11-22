@@ -1,0 +1,36 @@
+Z96A RK3568 fitfix-v4 刷写说明, 2026-11-23
+
+文件与校验:
+  u-boot.itb   1291776 字节 (2523 扇区)
+               sha256 4a2d6982d6846300de224d6178736b3a29d7a07512dc62eff12457bcde923cde
+
+相对 fitfix-v3:
+  ATF 1-6 与 u-boot.dtb 逐字节相同
+  u-boot nodtb +3160 字节：新增 z96a-bootfb（/chosen simple-framebuffer + reserved-memory no-map）
+  以及 U 盘优先/充电模式门控、早期 LED 反馈
+  rk3568_vop .flags 仍为 0（交接不关输出）
+
+目标:
+  eMMC sector 0x4000 (16384)
+  写入范围 16384..18906（2523 扇区），小于分区起始 32768
+  idbloader (sector 0x40, sha256 35c368f3...) 保持不动
+  GPT / parameter / 分区表 一律不写
+
+在线刷写 (Linux 系统内):
+  dd if=u-boot.itb of=/dev/mmcblk0 bs=512 seek=16384 conv=fsync
+  dd if=/dev/mmcblk0 bs=512 skip=16384 count=2523 of=/tmp/v.itb
+  sha256sum /tmp/v.itb     # 必须等于 4a2d6982...
+  # 注意 count 必须是 2523；用 2516 会得到截断前缀 94d850a3
+
+Windows RKDevTool (maskrom):
+  1. 设备进 maskrom，打开 RKDevTool v3.37。
+  2. 高级功能: 选择 MiniLoaderAll.bin，点“下载”，RAM 地址 0xCCCCCCCC
+     (只加载到 RAM，不写 flash)。
+  3. 下载镜像: 清空表格，只加一行
+       eMMC / 地址 0x4000 / 路径 u-boot.itb
+     勾选“强制按地址写”，点“执行”。
+  4. 重启。
+
+回滚:
+  fitfix-v3 u-boot.itb (56398fb6...，2516 扇区) 或 fitfix-v2 (9e523af1...)
+  写到同一位置 0x4000。
